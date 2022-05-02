@@ -10,13 +10,19 @@ from time import sleep_ms
 from getData import getData
 
 from machine import UART
-uart = UART(2, 1200)
+
+RATE = 9600
+# RATE = 1200
+
+# uart = UART(1, baudrate=RATE, tx=33, rx=32, timeout_char=50, txbuf=20)
+uart = UART(2, baudrate=RATE) # UART2 default : tx = GPIO17 , rx = GPIO16
 even = 0
 odd = 1
-uart.init(1200, bits=7, parity=even, stop=1)
-fd = uart
+# uart.init(baudrate=RATE, bits=7, parity=even, stop=1, rxbuf=1)
+uart.init(baudrate=RATE, bits=8, parity=None, stop=1)
+# print(uart)
 
-# val = fd.read(1)
+# val = uart.read(1)
 
 
 # ESP32 Pin assignment
@@ -46,20 +52,53 @@ def oledDisplay(s = 'XXX'):
     wri.printstring(s)
     oled.show()
 
-oledDisplay('Init...')
-sleep(2)
-oledDisplay(str(fd))
-sleep(2)
-"""
-while 1:
-    fd.write('e')
-    sleep_ms(15)
+def oledClear():
+    oled.fill(0)
+    oled.show()
+
+oledDisplay('Init...2')
+#@sleep(2)
+# oledDisplay(str(uart))
+# sleep(2)
+# oledDisplay('OK....')
+sleep(1)
+oledClear()
+
+c = 0
+nb = 0
+MAX = 400
 
 """
-lab = 'BBRHCJB'
-while 1:
-    val = getData(lab, fd)
-    oledDisplay(val)
-    sleep_ms(500)
+while nb < MAX:
+    # c = uart.write('Coucou\n')
+    c = uart.write('t')
+    oledDisplay(str(nb))
+    if c == 0:
+        oledDisplay('Erreur envoi !')
+        import sys
+        sys.exit(1)
+    sleep_ms(10)
+    nb += 1
 
+"""
+while nb < MAX:
+    try:
+        if uart.any() > 0:
+            val = uart.read(1)
+            # val = 1
+            if val:
+                oledDisplay(str(nb) + ' ' + str(val) + ' ' + val.decode('UTF-8'))
+            else:
+                oledDisplay('Rien !!!')
+
+        # val = getData(lab, uart)
+        # oledDisplay(val)
+        sleep_ms(10)
+    except:
+        oledDisplay('Error !')
+    nb += 1
+
+sleep(3)
+oledClear()
+oledDisplay('End !')
 

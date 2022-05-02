@@ -35,3 +35,15 @@ https://pypi.org/project/potsdb/ : client python de openTSDB (mais dernière ver
 Des Front-ends : http://opentsdb.net/docs/build/html/resources.html#front-ends
 
 
+
+
+Divers
+======
+
+Un exemple de récupération de données TIC avec arduino en C++ :
+https://forum.arduino.cc/t/softwareserial-et-deuxieme-uart-pour-arduino-nano/359978/2
+
+
+
+
+
