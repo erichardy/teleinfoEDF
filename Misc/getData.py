@@ -5,7 +5,7 @@ si on ne peut faire qu'une lecture en binaire sur l'UART, il faudra :
 3/ val = val.decode(encoding)
 """
 
-
+"""
 def getData(uart):
     frameBytes = []
     val = b''
@@ -22,16 +22,33 @@ def getData(uart):
             val = uart.read(1)
 
     return(frameBytes)
+"""
+
+
+def getData(uart):
+    frameBytes = []
+    val = b''
+
+    val = uart.read(1)
+    while(ord(val) != 2):
+        val = uart.read(1)
+
+    while(ord(val) != 3):
+        frameBytes.append(val)
+        val = uart.read(1)
+
+    return(frameBytes)
 
 
 def frameToDict(frameBytes):
-    frameSRT = ""
+    frameSTR = ""
     for c in frameBytes:
         frameSTR += c.decode('utf-8')
     frame = frameSTR.split('\n')
     labels = {}
     for data in frame:
         d = data.split('\t')
-        labels[d[0]] = d[1]
+        if len(d) > 1:
+            labels[d[0]] = d[1]
     return(labels)
 
