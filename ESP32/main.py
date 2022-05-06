@@ -7,7 +7,9 @@ import Courrier_New15
 from time import sleep
 from time import sleep_ms
 
-from getData import getData
+from machine import WDT
+
+from getData import getData, frameToDict
 
 from machine import UART
 
@@ -18,8 +20,8 @@ RATE = 9600
 uart = UART(2, baudrate=RATE) # UART2 default : tx = GPIO17 , rx = GPIO16
 even = 0
 odd = 1
-# uart.init(baudrate=RATE, bits=7, parity=even, stop=1, rxbuf=1)
-uart.init(baudrate=RATE, bits=8, parity=None, stop=1)
+uart.init(baudrate=RATE, bits=7, parity=even, stop=1)
+# uart.init(baudrate=RATE, bits=8, parity=None, stop=1)
 # print(uart)
 
 # val = uart.read(1)
@@ -56,7 +58,7 @@ def oledClear():
     oled.fill(0)
     oled.show()
 
-oledDisplay('Init...2')
+oledDisplay('Init...1')
 #@sleep(2)
 # oledDisplay(str(uart))
 # sleep(2)
@@ -64,10 +66,15 @@ oledDisplay('Init...2')
 sleep(1)
 oledClear()
 
+# wdt = WDT(timeout=10000)
+
+
 c = 0
 nb = 0
 MAX = 400
-
+MAX = 10
+val = ''
+vals = []
 """
 while nb < MAX:
     # c = uart.write('Coucou\n')
@@ -79,26 +86,58 @@ while nb < MAX:
         sys.exit(1)
     sleep_ms(10)
     nb += 1
+"""
 
+frameBytes = []
 """
 while nb < MAX:
-    try:
-        if uart.any() > 0:
-            val = uart.read(1)
-            # val = 1
-            if val:
-                oledDisplay(str(nb) + ' ' + str(val) + ' ' + val.decode('UTF-8'))
-            else:
-                oledDisplay('Rien !!!')
+    oledDisplay(str(nb))
+    # frameBytes = getData(uart)
+    # labels = frameToDict(frameBytes)
+    # l = 'SINSTS:' + labels['SINSTS']
+    # oledDisplay(l)
+    #     oledDisplay('Error !')
+val = uart.read(1)
+while val != b'\x02':
+    val = uart.read(1)
+while val != b'\x03':
+    frameBytes.append(val.decode())
+    val = uart.read(1)
+"""
 
-        # val = getData(lab, uart)
-        # oledDisplay(val)
-        sleep_ms(10)
-    except:
-        oledDisplay('Error !')
+while nb < MAX:
+    val = uart.read(1)
+    frameBytes.append(val.decode())
+    oledClear()
+    oledDisplay(val.decode())
     nb += 1
 
-sleep(3)
+sleep(2)
 oledClear()
 oledDisplay('End !')
+
+for v in frameBytes:
+    oledClear()
+    oledDisplay(v)
+    sleep(1)
+
+
+sleep(2)
+oledClear()
+oledDisplay('End End !')
+
+
+
+
+def frameToDict(frameBytes):
+    frameSTR = ""
+    for c in frameBytes:
+        frameSTR += c.decode('ascii')
+    frame = frameSTR.split('\n')
+    labels = {}
+    for data in frame:
+        d = data.split('\t')
+        if len(d) > 1:
+            labels[d[0]] = d[1]
+    return(labels)
 
