@@ -1,23 +1,18 @@
 
 from machine import UART
+from time import sleep_ms
 import sys
 
-class dataEDF:
-
-    def __init__():
-        pass
+class dataEDF():
 
     label = ""
     value = ""
     horo = ""
     checksum = ""
 
-out = open('dataFile', "w")
-
-RATE = 9600
 # RATE = 1200
-
 # uart = UART(1, baudrate=RATE, tx=33, rx=32, timeout_char=50, txbuf=20)
+RATE = 9600
 uart = UART(2, baudrate=RATE) # UART2 default : tx = GPIO17 , rx = GPIO16
 even = 0
 odd = 1
@@ -25,7 +20,11 @@ uart.init(baudrate=RATE, bits=7, parity=even, stop=1)
 
 nb = 0
 MAX = 3000
+TRIES = 10
+t = 0
+READS = False
 
+out = open('dataFile', "w")
 while nb < MAX:
     if uart.any() > 0:
         val = uart.read(1)
@@ -39,8 +38,24 @@ out.close()
 print("Fin acquisition")
 
 frameFile = open('frame', "w")
-data = open('dataFile', "r")
 
+"""
+data = open('dataFile', "r")
+nbFrames = 1
+nbChars = 1
+while 1:
+    c = data.read(1)
+    if not c:
+        break
+    nbChars += 1
+    if c == '\x02':
+        print("nb frames : %i   nb chars : %i" % (nbFrames, nbChars))
+        nbFrames += 1
+        nbChars = 0
+data.close()
+"""
+
+data = open('dataFile', "r")
 frame = []
 c = data.read(1)
 while c != '\x02':
@@ -72,9 +87,10 @@ frameFile.close()
 frameList = frameStr.split('\n')
 print(frameList)
 
-sys.exit()
+# sys.exit()
 labels = {}
 values = {}
+mesures = []
 
 for d in frameList:
     line = d.split('\t')
@@ -88,9 +104,11 @@ for d in frameList:
         else:
             de.value = line[1]
             de.checksum = line[2]
+            de.horo = ""
+        mesures.append(de)
 
+print('\n\n')
+for m in mesures:
+    print("%s %s %s" % (m.label, m.value, m.horo))
 
-
-
-
-
+sys.exit()
