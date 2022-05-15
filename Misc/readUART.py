@@ -1,4 +1,16 @@
+"""
+Capture d'une trame de données :
+1- pour être certains de capturer une trame complète, on capte 3000 caractères
+2- ces 3000 caractères on les stocke dans un fichier : dataFile (**1**)
+3- (**2**) on lit le fichier et on ne capte qu'une trame, c'est-à-dire à partir
+  du caratère STX (\x02), on mey tout ça dans une liste de caractères : frame[]
+4- (**3**) on remet tous ces caractères dans une STR (frameSTR) pour utiliser
+  par la suite la méthode split()
+5- (**4**) on isole les données, chaque donnée par split('\n')
+6- on met ensuite toutes ces données dans des objets de classe dataEDF
+  par la méthode split('\t') qui permet d'isoler les labels et les champs
 
+"""
 from machine import UART
 from time import sleep_ms
 import sys
@@ -17,7 +29,7 @@ uart = UART(2, baudrate=RATE) # UART2 default : tx = GPIO17 , rx = GPIO16
 even = 0
 odd = 1
 uart.init(baudrate=RATE, bits=7, parity=even, stop=1)
-
+# (**1**)
 nb = 0
 MAX = 3000
 TRIES = 10
@@ -54,7 +66,7 @@ while 1:
         nbChars = 0
 data.close()
 """
-
+# (**2**)
 data = open('dataFile', "r")
 frame = []
 c = data.read(1)
@@ -75,8 +87,8 @@ while nb < MAX - 1:
 
 data.close()
 
+# (**3**)
 frameStr = ""
-
 for c in frame:
     frameFile.write(c)
     frameStr += c
@@ -84,6 +96,9 @@ for c in frame:
 frameFile.close()
 # print(type(frameStr))
 # print(frameStr)
+
+
+# (**4**)
 frameList = frameStr.split('\n')
 print(frameList)
 
