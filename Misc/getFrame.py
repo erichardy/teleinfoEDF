@@ -14,10 +14,12 @@ from  sys import exit
 from gc import enable
 from gc import collect
 from os import remove
+from _thread import start_new_thread
 
 f = []
 mesures = []
 fields = ['DATE', 'SINSTS1', 'SINSTS2', 'SINSTS3']
+sinsts = []
 SINSTS1 = {}
 SINSTS2 = {}
 SINSTS3 = {}
@@ -83,19 +85,38 @@ def getData(frame):
                 de.value = de.horo
             if de.label in fields:
                 mesures.append(de)
-            for m in mesures:
-               if m.label == 'DATE':
-                    date = m.value
-                    break
-            for m in mesures:
-                if m.label == 'SINSTS1':
-                    SINSTS1[date] = m.value
-                if m.label == 'SINSTS2':
-                    SINSTS2[date] = m.value
-                if m.label == 'SINSTS3':
-                    SINSTS3[date] = m.value
+    for m in mesures:
+       if m.label == 'DATE':
+            date = m.value
+    for m in mesures:
+        if m.label == 'SINSTS1':
+            # SINSTS1[date] = m.value
+            sinsts1 = m.value
+        if m.label == 'SINSTS2':
+            # SINSTS2[date] = m.value
+            sinsts2 = m.value
+        if m.label == 'SINSTS3':
+            # SINSTS3[date] = m.value
+            sinsts3 = m.value
+    sinsts.append((date, sinsts1, sinsts2, sinsts3))
     gc.collect()
     return
+
+def myData():
+    for t in range(0, 10):
+        gc.collect()
+        # frame = getFrame(uart)
+        getFrame()
+        l = len(f)
+        if l == 1159:
+            getData(f)
+            """
+            for m in mesures:
+                print("%s:%s:%s:" % (m.label, m.value, m.horo))
+            print('\n\n')
+            """
+        f.clear()
+        sleep(10)
 
 RATE = 9600
 uart = UART(2, baudrate=RATE) # UART2 default : tx = GPIO17 , rx = GPIO16
@@ -104,21 +125,10 @@ odd = 1
 uart.init(baudrate=RATE, bits=7, parity=even, stop=1)
 gc.enable()
 
-for t in range(0, 10):
-    gc.collect()
-    # frame = getFrame(uart)
-    getFrame()
-    l = len(f)
-    if l == 1159:
-        getData(f)
-        """
-        for m in mesures:
-            print("%s:%s:%s:" % (m.label, m.value, m.horo))
-        print('\n\n')
-        """
-    f.clear()
-    print(SINSTS1)
-    print(SINSTS2)
-    print(SINSTS3)
-    sleep(1)
+# start_new_thread(myData, ())
+myData()
 
+print(sinsts)
+# print(SINSTS1)
+# print(SINSTS2)
+# print(SINSTS3)
