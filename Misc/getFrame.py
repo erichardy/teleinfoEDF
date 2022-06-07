@@ -1,28 +1,62 @@
 """
 gestion de la mémoire : https://micropython.fr/88.lab/optimiser_usage_ram/
-
 les threads en python : https://techtutorialsx.com/2017/10/02/esp32-micropython-creating-a-thread/
-
-
 """
-
+import micropython as upy
 
 from machine import UART
 from time import sleep
-from time import sleep_ms
+from time import localtime
+from time import mktime
+# from time import sleep_ms
 from  sys import exit
 from gc import enable
 from gc import collect
 from os import remove
-from _thread import start_new_thread
+
+# from gc import mem_free
+# from gc import mem_alloc
+
+
+""" OLED """
+"""
+from machine import Pin, I2C
+from ssd1306 import SSD1306_I2C
+# from ssd1306_setup import WIDTH, HEIGHT, setup
+from writer import Writer
+import Courrier_New as Courrier_New15
+
+# ESP32 Pin assignment
+i2c = I2C(scl=Pin(22), sda=Pin(21))
+pscl = Pin(22, Pin.OPEN_DRAIN)
+psda = Pin(21, Pin.OPEN_DRAIN)
+i2c = I2C(scl=pscl, sda=psda)
+
+# OLED
+# 2 lignes de 12 caracteres avec la font Courrier_New15
+WIDTH = const(128)
+HEIGHT = const(32)
+oled = SSD1306_I2C(WIDTH, HEIGHT, i2c)
+wri = Writer(oled, Courrier_New15)
+
+def oledDisplay(s = 'XXX'):
+    Writer.set_textpos(oled, 0, 0)
+    wri.printstring(s)
+    oled.show()
+
+def oledClear():
+    oled.fill(0)
+    oled.show()
+
+"""
+""" END OLED """
 
 f = []
 mesures = []
 fields = ['DATE', 'SINSTS1', 'SINSTS2', 'SINSTS3']
 sinsts = []
-SINSTS1 = {}
-SINSTS2 = {}
-SINSTS3 = {}
+cumul = []
+MAX_CUMUL = 4
 
 class dataEDF():
 
@@ -63,9 +97,11 @@ def getFrame():
 
 def getData(frame):
     mesures.clear()
+    # convert sequence of bytes to string
     frameSTR = ""
     for c in frame:
         frameSTR += c
+    # scan for fields and theire values
     frameList = frameSTR.split('\n')
     for d in frameList:
         line = d.split('\t')
@@ -86,29 +122,33 @@ def getData(frame):
             if de.label in fields:
                 mesures.append(de)
     for m in mesures:
-       if m.label == 'DATE':
+        if m.label == 'DATE':
             date = m.value
-    for m in mesures:
         if m.label == 'SINSTS1':
-            # SINSTS1[date] = m.value
             sinsts1 = m.value
         if m.label == 'SINSTS2':
-            # SINSTS2[date] = m.value
             sinsts2 = m.value
         if m.label == 'SINSTS3':
-            # SINSTS3[date] = m.value
             sinsts3 = m.value
-    sinsts.append((date, sinsts1, sinsts2, sinsts3))
+    inst = (date, int(sinsts1), int(sinsts2), int(sinsts3))
+    sinsts.append(inst)
+    if len(cumul) > MAX_CUMUL - 1:
+        cumul.pop(0)
+    cumul.append(inst)
     gc.collect()
     return
 
 def myData():
-    for t in range(0, 10):
+    # for t in range(0, MAX_CUMUL + 4):
+    for t in range(0, MAX_CUMUL + 5):
+        # oledClear()
+        # oledDisplay(str(t) + '\n')
         gc.collect()
         # frame = getFrame(uart)
         getFrame()
         l = len(f)
         if l == 1159:
+            # oledDisplay(str(l))
             getData(f)
             """
             for m in mesures:
@@ -116,19 +156,36 @@ def myData():
             print('\n\n')
             """
         f.clear()
-        sleep(10)
+        sleep(5)
+
+def myData2():
+    gc.collect()
+    getFrame()
+    l = len(f)
+    if l == 1159:
+        getData(f)
+    f.clear()
+
 
 RATE = 9600
 uart = UART(2, baudrate=RATE) # UART2 default : tx = GPIO17 , rx = GPIO16
 even = 0
-odd = 1
 uart.init(baudrate=RATE, bits=7, parity=even, stop=1)
 gc.enable()
 
-# start_new_thread(myData, ())
-myData()
+# myData()
+while 1:
+    myData2()
+    lsinsts = len(sinsts)
+    if lsinsts > 30:
+        break
+
 
 print(sinsts)
-# print(SINSTS1)
-# print(SINSTS2)
-# print(SINSTS3)
+print(cumul)
+"""
+print(upy.mem_info())
+print(mem_free())
+print(mem_alloc())
+"""
+
