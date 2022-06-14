@@ -1,5 +1,4 @@
 import machine, neopixel
-from time import sleep
 from time import sleep_ms
 
 """
