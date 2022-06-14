@@ -2,6 +2,12 @@ import machine, neopixel
 from time import sleep
 from time import sleep_ms
 
+"""
+phase1 : 0 - 5 ; 6 - 11
+phase2 : 12 - 17 ; 18 - 23
+phase3 : 24 - 29 ; 30 - 35
+"""
+
 class phase():
     """ attributes for rank of leds
     """
@@ -11,7 +17,6 @@ class phase():
     startLed_Max = 0 # LEDs for max value
     endLed_Max = 0
     np = None # neopixel.NeoPixel object
-    # white = (self.maxBright, self.maxBright, self.maxBright)
     white = (maxBright, maxBright, maxBright)
 
     def ___init___(self):
@@ -38,13 +43,11 @@ class phase():
         if value == 0:
             color = (0, 0, 0)
         kwatts = startLed + (value // 1000)
-        print(kwatts)
-        # watts = value - (kwatts * 1000)
         watts = value % 1000
         if kwatts > 0:
             for led in range(startLed, kwatts):
                 self.np[led] = self.white
-                sleep_ms(100)
+                sleep_ms(10)
                 # self.np.write()
         if watts in range(1, 333):
             color = (0, self.maxBright, 0)
@@ -54,7 +57,6 @@ class phase():
             color = (self.maxBright, 0, 0)
         self.np[kwatts] = color
         self.np.write()
-        print(color)
 
     def displayInst(self, value):
         self.clearInst()
