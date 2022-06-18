@@ -53,7 +53,8 @@ def oledClear():
 
 f = []
 mesures = []
-fields = ['DATE', 'SINSTS1', 'SINSTS2', 'SINSTS3']
+fields = ['DATE', 'SINSTS1', 'SINSTS2', 'SINSTS3', 'SMAXSN1', 'SMAXSN2', 'SMAXSN3']
+fields_SMAXSN = ['SMAXSN1', 'SMAXSN2', 'SMAXSN3']
 sinsts = []
 cumul = []
 MAX_CUMUL = 4
@@ -168,6 +169,8 @@ def myData2():
 
 
 RATE = 9600
+# uart = UART(2, baudrate=9600)
+# uart.init( baudrate=9600, bits=7, parity=0, stop=1)
 uart = UART(2, baudrate=RATE) # UART2 default : tx = GPIO17 , rx = GPIO16
 even = 0
 uart.init(baudrate=RATE, bits=7, parity=even, stop=1)
@@ -177,7 +180,7 @@ gc.enable()
 while 1:
     myData2()
     lsinsts = len(sinsts)
-    if lsinsts > 30:
+    if lsinsts > 3:
         break
 
 
