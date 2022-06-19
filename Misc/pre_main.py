@@ -1,4 +1,8 @@
 
+import micropython as upy
+from gc import mem_free
+from gc import mem_alloc
+
 import machine
 import neopixel
 from gc import enable
@@ -44,23 +48,35 @@ phase3.startLed_Max = 30
 phase3.endLed_Max = 35
 phase3.np = np
 
-f = getFrame(uart)
-(v, h, c) = getDict(f)
-if v:
-    phase1.SINSTS = int(v['SINSTS1'])
-    phase1.SMAXSN = int(v['SMAXSN1'])
-    phase2.SINSTS = int(v['SINSTS2'])
-    phase2.SMAXSN = int(v['SMAXSN2'])
-    phase3.SINSTS = int(v['SINSTS3'])
-    phase3.SMAXSN = int(v['SMAXSN3'])
-    phase1.displayInst()
-    phase1.displayMax()
-    phase2.displayInst()
-    phase2.displayMax()
-    phase3.displayInst()
-    phase3.displayMax()
+for n in range(0, 200):
+    # collect()
+    # print(upy.mem_info())
+    print('-----------')
+    print("free : %i ; alloc %i" % (mem_free(), mem_alloc()))
+    f = getFrame(uart)
+    (v, h, c) = getDict(f)
+    collect()
+    print("free : %i ; alloc %i" % (mem_free(), mem_alloc()))
+    if v:
+        phase1.SINSTS = int(v['SINSTS1'])
+        phase1.SMAXSN = int(v['SMAXSN1'])
+        phase2.SINSTS = int(v['SINSTS2'])
+        phase2.SMAXSN = int(v['SMAXSN2'])
+        phase3.SINSTS = int(v['SINSTS3'])
+        phase3.SMAXSN = int(v['SMAXSN3'])
+        phase1.displayInst()
+        phase1.displayMax()
+        phase2.displayInst()
+        phase2.displayMax()
+        phase3.displayInst()
+        phase3.displayMax()
 
-print("phase1 : %i , %i" % (phase1.SINSTS, phase1.SMAXSN))
-print("phase2 : %i , %i" % (phase2.SINSTS, phase2.SMAXSN))
-print("phase3 : %i , %i" % (phase3.SINSTS, phase3.SMAXSN))
+    print(":%i:" % (n))
+    print("phase1 : %i , %i" % (phase1.SINSTS, phase1.SMAXSN))
+    print("phase2 : %i , %i" % (phase2.SINSTS, phase2.SMAXSN))
+    print("phase3 : %i , %i" % (phase3.SINSTS, phase3.SMAXSN))
 
+# print(upy.mem_info())
+print("free : %i ; alloc %i" % (mem_free(), mem_alloc()))
+# print(mem_free())
+# print(mem_alloc())

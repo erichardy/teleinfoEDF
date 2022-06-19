@@ -17,6 +17,7 @@ from os import remove
 # getFrame : populate the list f[] with chars, 1 frame
 def getFrame(uart):
     f = []
+    f.clear()
     collect()
     out = open('dataFile', "w")
     nb = 0
@@ -31,6 +32,7 @@ def getFrame(uart):
     while c != '\x02':
         c = out.read(1)
     nb = 0
+    collect()
     while nb < 2999:
         c = out.read(1)
         if c == '\x03':
@@ -46,6 +48,7 @@ def getFrame(uart):
 
 # get a list of chars and return 3 dicts : values, horo, checksum
 def getDict(f):
+    collect()
     fSTR = ""
     for c in f:
         fSTR += c
