@@ -59,11 +59,36 @@ class phase():
         self.np[kwatts] = color
         self.np.write()
 
-    def displayInst(self):
+    def displayInst(self, value):
         self.clearInst()
-        self._display(self.SINSTS, self.startLed_Inst)
+        self._display(value, self.startLed_Inst)
 
-    def displayMax(self):
+    def displayMax(self, value):
         self.clearMax()
-        self._display(self.SMAXSN, self.startLed_Max)
+        self._display(value, self.startLed_Max)
 
+np = neopixel.NeoPixel(machine.Pin(4), 36)
+
+phase1 = phase()
+phase1.startLed_Inst = 0
+phase1.endLed_Inst = 5
+phase1.startLed_Max = 30
+phase1.endLed_Max = 35
+phase1.np = np
+
+values = [5999, 5550, 5220,
+    4999, 4550, 4220, 0,
+    3999, 3550, 3220,
+    2999, 2550, 2220,
+    1999, 1550, 1220,
+    999, 550, 220, 0]
+"""
+for v in values:
+    phase1.displayInst(v)
+    sleep_ms(100)
+"""
+""" """
+for v in values:
+    phase1.displayMax(v)
+    sleep_ms(100)
+""" """
