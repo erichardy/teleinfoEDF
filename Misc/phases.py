@@ -10,6 +10,7 @@ phase3 : 24 - 29 ; 30 - 35
 class phase():
     """ attributes for rank of leds
     """
+    insts = 0
     maxBright = 10 # maximum brightness of the LEDs
     startLed_Inst = 0 # LEDs for instantaneous values
     endLed_Inst = 0
