@@ -10,6 +10,18 @@ from gc import collect
 from os import remove
 from getFrame import getFrame, getDict
 from phases import phase
+from time import sleep_ms
+
+buzzer = 13 # buzzer on Pin 13
+p_buzzer = machine.Pin(buzzer, machine.Pin.OUT)
+
+
+def alarm(times):
+    for i in range(0, times):
+        p_buzzer.on()
+        sleep_ms(50)
+        p_buzzer.off()
+        sleep_ms(50)
 
 
 RATE = 9600
@@ -31,7 +43,7 @@ phase1 = phase()
 phase1.startLed_Inst = 0
 phase1.endLed_Inst = 5
 phase1.startLed_Max = 6
-phase1.endLed_Max = 1
+phase1.endLed_Max = 11
 phase1.np = np
 
 phase2 = phase()
@@ -48,15 +60,26 @@ phase3.startLed_Max = 30
 phase3.endLed_Max = 35
 phase3.np = np
 
-for n in range(0, 200):
+try:
+    reseted = open('reseted', "r")
+    alarm(100)
+    remove('reseted')
+except:
+    pass
+
+alarm(3)
+sleep_ms(2000)
+alarm(3)
+
+for n in range(0, 30):
     # collect()
     # print(upy.mem_info())
-    print('-----------')
-    print("free : %i ; alloc %i" % (mem_free(), mem_alloc()))
+    # print('-----------')
+    # print("free : %i ; alloc %i" % (mem_free(), mem_alloc()))
     f = getFrame(uart)
     (v, h, c) = getDict(f)
     collect()
-    print("free : %i ; alloc %i" % (mem_free(), mem_alloc()))
+    # print("free : %i ; alloc %i" % (mem_free(), mem_alloc()))
     if v:
         phase1.SINSTS = int(v['SINSTS1'])
         phase1.SMAXSN = int(v['SMAXSN1'])
@@ -71,12 +94,16 @@ for n in range(0, 200):
         phase3.displayInst()
         phase3.displayMax()
 
-    print(":%i:" % (n))
-    print("phase1 : %i , %i" % (phase1.SINSTS, phase1.SMAXSN))
-    print("phase2 : %i , %i" % (phase2.SINSTS, phase2.SMAXSN))
-    print("phase3 : %i , %i" % (phase3.SINSTS, phase3.SMAXSN))
+    # print(":%i:" % (n))
+    # print("phase1 : %i , %i" % (phase1.SINSTS, phase1.SMAXSN))
+    # print("phase2 : %i , %i" % (phase2.SINSTS, phase2.SMAXSN))
+    # print("phase3 : %i , %i" % (phase3.SINSTS, phase3.SMAXSN))
 
-# print(upy.mem_info())
-print("free : %i ; alloc %i" % (mem_free(), mem_alloc()))
+# print("free : %i ; alloc %i" % (mem_free(), mem_alloc()))
 # print(mem_free())
 # print(mem_alloc())
+alarm(3)
+sleep_ms(2000)
+alarm(3)
+
+print("Fin")

@@ -5,6 +5,7 @@ les threads en python : https://techtutorialsx.com/2017/10/02/esp32-micropython-
 import micropython as upy
 
 from machine import UART
+from machine import reset
 from time import sleep
 from time import localtime
 from time import mktime
@@ -33,13 +34,19 @@ def getFrame(uart):
         c = out.read(1)
     nb = 0
     collect()
-    while nb < 2999:
-        c = out.read(1)
-        if c == '\x03':
-            break
-        if c != '\x0d':
-            f.append(c)
-        nb += 1
+    try:
+        while nb < 2999:
+            c = out.read(1)
+            if c == '\x03':
+                break
+            if c != '\x0d':
+                f.append(c)
+            nb += 1
+    except:
+        reseted = open('reseted', "w")
+        # reseted.write('reseted')
+        # reseted.close()
+        reset()
     out.close()
     remove('dataFile')
     collect()
