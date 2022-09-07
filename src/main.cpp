@@ -46,7 +46,7 @@ bool buff_started = false;
 
 SoftwareSerial Linky;
 
-/* struct from LibTeleinfo created by C. Hallard
+/* struct partialy from LibTeleinfo created by C. Hallard
    thanks to C. Hallard http://hallard.me/category/tinfo */
 typedef struct _Value Value;
 struct _Value
@@ -65,7 +65,7 @@ struct _valuesList {
     Value * first;
     uint32_t number;
 };
-
+valuesList values;
 /*
    displayValue : should replace cout with Serial.print
 */
@@ -79,6 +79,24 @@ void displayValue(Value * val) {
     }
     cout << "Checksum :" << val->checksum << endl;
 }
+
+void displayValue2(Value * val) {
+    Serial.print("Label :");
+    Serial.println(val->label);
+    Serial.print("Value :");
+    Serial.println(val->value);
+
+    if (val->horo) {
+        Serial.print("Horo :");
+        Serial.println(val->horo);
+    } else {
+        Serial.print("Horo :");
+        Serial.println("NONE");
+    }
+    Serial.print("Checksum :");
+    Serial.println(val->checksum);
+}
+
 
 void clearBuffer() {
   memset(buff, 0, BUFF_SIZE);
@@ -148,14 +166,16 @@ only 'line' and 'next' attributes are set.
 The struct 'Values' is used to manage the chained list
 of values.
 */
-valuesList getValuesFromFrame(char * frame) {
-    valuesList values;
+void getValuesFromFrame() {
+    // valuesList values;
     uint32_t number = 0;
     char * F_line; // one line from Frame _F_
     int len;
     Value * prev_value;
+    Value * tmp_value;
 
-    F_line = strtok(frame, "\n");
+    F_line = strtok(buff, "\n");
+    number = 0;
     while (F_line != NULL) {
         len = strlen(F_line) + 1;
         Value * current_value = new Value;
@@ -165,43 +185,72 @@ valuesList getValuesFromFrame(char * frame) {
             current_value->next = NULL;
             values.first = current_value;
             values.number = 0;
+            // Serial.println((uint32_t) values.first);
+            // tmp_value = values.first;
+            // Serial.println(tmp_value->line);
         } else {
             current_value->next = NULL;
             prev_value->next = current_value;
+            // tmp_value = prev_value->next;
+            // Serial.println(tmp_value->line);
             values.number = number;
         }
         prev_value = current_value;
+        // Serial.println(F_line);
         F_line = strtok(NULL, "\n");
+        // Serial.println(number);
         number++;
     }
-    return(values);
-}
-
-/* */
-void getUsefullData() {
-  /* */
-}
-
-void sendUsefullData() {
-  /* */
+    /*
+    tmp_value = values.first;
+    Serial.println(tmp_value->line);
+    Serial.println((uint32_t) values.first);
+    */
 }
 
 /*
 buffer == frame
 */
-void manageFrame(char *frame) {
-  valuesList values;
+void manageFrame() {
+  // valuesList values;
   Value * val;
+  char * F_line;
+  uint8_t len;
 
-  values = getValuesFromFrame(frame);
-  val = values.first;
-  while (val) {
-    setValueFields(val);
-    // displayValue(val);
+  getValuesFromFrame();
+  Serial.println(values.number);
+
+  if (values.number == 52) {
+    /*
+    val = values.first;
+    len = strlen(val->line);
+    Serial.println(val->line);
     val = val->next;
+    Serial.println(val->line);
+    val = val->next;
+    Serial.println(val->line);
+    val = val->next;
+    Serial.println(val->line);
+    val = val->next;
+    Serial.println(val->line);
+    // F_line = (char *) malloc(len + 1);
+    // strcpy(F_line, val->line);
+    // Serial.println(F_line);
+    // Serial.println(len);
+    Serial.println("================");
+    */
+  /* */
+    val = values.first;
+    while (val) {
+      setValueFields(val);
+      displayValue2(val);
+      val = val->next;
+    }
   }
-  val = values.first;
+  /* */
+  // val = values.first;
   
+  clearBuffer();
 }
 
 // raw data acquired form Serial
@@ -210,15 +259,15 @@ void fillBuffer(char c) {
   switch (c)  {
     case STX:
       // Serial.println("Start") ;
-      clearBuffer();
+      // clearBuffer();
       buff_started = true;
       break;
     case ETX:
       // we convert buffer to frame, then later used data
       // Serial.println("End") ;
       buff_started = false;
-      buff[buff_idx++] = 0;
-      manageFrame(buff);
+      buff[buff_idx] = 0;
+      manageFrame();
       break;
     default:
       // Serial.print(c);
@@ -236,7 +285,6 @@ void setup() {
   Linky.begin(9600, SWSERIAL_7E1, 16, 4);
   // Linky.begin(16, 4);
   /*
-  tinfo.init(TINFO_MODE_STANDARD);
   WiFi.mode(WIFI_MODE_STA);
   WiFi.disconnect();
   ESPNow.init();
@@ -252,8 +300,8 @@ void loop() {
   Serial.println(a++); */
   if (Linky.available()){
     c = Linky.read();
-    // we ignore \r (== cr == 13)
-    if (c != 13) fillBuffer(c);
+    // we should gnore \r (== cr == 13)
+    fillBuffer(c);
     i++;
   }
   if (i > 5000){
@@ -261,7 +309,7 @@ void loop() {
     Serial.println(F("XXXX"));
     Serial.println(F("XXXX"));
     Serial.println(F("XXXX"));
-    delay(10000);
+    delay(5000);
     i = 0;
   }
   // Serial.println(F("."));
