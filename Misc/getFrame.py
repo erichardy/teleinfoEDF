@@ -76,20 +76,12 @@ def getDict(f):
         if len(mesure) == 4:
             horo = mesure[1]
             value = mesure[2]
+            if label == 'DATE':
+                value = 'x'     # correction du bug dans la trame emise
             checksum = mesure[3]
         if value:
             values[label] = value
             horos[label] = horo
             checksums[label] =checksum
     return(values, horos, checksums)
-
-"""
-RATE = 9600
-# uart = UART(2, baudrate=9600)
-# uart.init( baudrate=9600, bits=7, parity=0, stop=1)
-uart = UART(2, baudrate=RATE) # UART2 default : tx = GPIO17 , rx = GPIO16
-even = 0
-uart.init(baudrate=RATE, bits=7, parity=even, stop=1)
-enable()
-"""
 
