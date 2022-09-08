@@ -2,7 +2,11 @@
 // ESP32 API references : https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/index.html
 
 #include <Arduino.h>
-
+/*
+E01	24:0A:C4:5F:82:A8
+// E02	24:62:AB:F3:30:BC
+E03	24:0A:C4:5F:77:B0
+*/
 /*
 cf strtok fonction: https://en.cppreference.com/w/cpp/string/byte/strtok
 could be very usefull here !!!
@@ -191,21 +195,24 @@ void getValuesFromFrame() {
         } else {
             current_value->next = NULL;
             prev_value->next = current_value;
-            // tmp_value = prev_value->next;
-            // Serial.println(tmp_value->line);
             values.number = number;
         }
         prev_value = current_value;
-        // Serial.println(F_line);
         F_line = strtok(NULL, "\n");
-        // Serial.println(number);
         number++;
     }
-    /*
-    tmp_value = values.first;
-    Serial.println(tmp_value->line);
-    Serial.println((uint32_t) values.first);
-    */
+}
+
+Value * getValueFor(char * label)   {
+    Value *val; // pointer returned
+    val = values.first;
+    while (val) {
+        if (!strcmp(val->label, label)) {
+            break;
+        }
+        val = val->next;
+    }
+    return val;
 }
 
 /*
@@ -221,35 +228,20 @@ void manageFrame() {
   Serial.println(values.number);
 
   if (values.number == 52) {
-    /*
-    val = values.first;
-    len = strlen(val->line);
-    Serial.println(val->line);
-    val = val->next;
-    Serial.println(val->line);
-    val = val->next;
-    Serial.println(val->line);
-    val = val->next;
-    Serial.println(val->line);
-    val = val->next;
-    Serial.println(val->line);
-    // F_line = (char *) malloc(len + 1);
-    // strcpy(F_line, val->line);
-    // Serial.println(F_line);
-    // Serial.println(len);
-    Serial.println("================");
-    */
   /* */
     val = values.first;
     while (val) {
       setValueFields(val);
-      displayValue2(val);
+      // displayValue2(val);
       val = val->next;
     }
+    Serial.println("================");
+    /*  */
+    char x_label[] = "SINSTS1";
+    Value * x_val;
+    x_val = getValueFor(x_label);
+    displayValue2(x_val);
   }
-  /* */
-  // val = values.first;
-  
   clearBuffer();
 }
 
@@ -280,7 +272,9 @@ void fillBuffer(char c) {
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("ESPNow sender Demo");
+  Serial.println("ESPNow..");
+  Serial.print("MAC Address : ");
+  Serial.println(WiFi.macAddress());
   // pinMode(ONBOARD_LED, OUTPUT);
   Linky.begin(9600, SWSERIAL_7E1, 16, 4);
   // Linky.begin(16, 4);
@@ -306,12 +300,7 @@ void loop() {
   }
   if (i > 5000){
     Serial.println(F("XXXX"));
-    Serial.println(F("XXXX"));
-    Serial.println(F("XXXX"));
-    Serial.println(F("XXXX"));
     delay(5000);
     i = 0;
   }
-  // Serial.println(F("."));
-  // delay(5000);
 }
