@@ -1,5 +1,7 @@
 
 // ESP32 API references : https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/index.html
+//
+// https://arduinojson.org/
 
 #include <Arduino.h>
 /*
@@ -12,6 +14,14 @@ cf strtok fonction: https://en.cppreference.com/w/cpp/string/byte/strtok
 could be very usefull here !!!
 https://www.javatpoint.com/how-to-split-strings-in-cpp
 */
+
+/*
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+This version suffer of memory management.
+An other version should be developped !!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+*/
+
 #include <cstring>
 #include <iostream>
 #include <iomanip>
@@ -43,10 +53,14 @@ uint8_t receiver_mac[] = {0x36, 0x33, 0x33, 0x33, 0x33, 0x33};
 char c;
 uint32_t i = 0;
 uint32_t n = 0;
+uint32_t mem1 = 0;
+uint32_t mem2 = 0;
+uint32_t mem3 = 0;
 
 char buff[3000];
 uint32_t buff_idx = 0;
 bool buff_started = false;
+uint32_t nb_frames = 0;
 
 SoftwareSerial Linky;
 
@@ -106,6 +120,28 @@ void clearBuffer() {
   memset(buff, 0, BUFF_SIZE);
   buff_idx = 0;
   buff_started = false;
+}
+
+void clearData() {
+  Value * val;
+  Value * next;
+  Serial.println(ESP.getFreeHeap());  
+  /* */
+  val = values.first;
+  /*
+  while (val != NULL) {
+    free(val->label);
+    free(val->line);
+    free(val->horo);
+    // free(val->ts);
+    free(val->value);
+    // we go to the last
+    val = val->next;
+    // val = next;
+  }
+  Serial.println(ESP.getFreeHeap());
+  */
+  /* */
 }
 
 /* set the fields from each line which contains
@@ -224,9 +260,11 @@ void manageFrame() {
   char * F_line;
   uint8_t len;
 
+  // Serial.println(ESP.getFreeHeap());
   getValuesFromFrame();
-  Serial.println(values.number);
-
+  
+  // Serial.println(values.number);
+  // Serial.println(ESP.getFreeHeap());
   if (values.number == 52) {
   /* */
     val = values.first;
@@ -235,14 +273,17 @@ void manageFrame() {
       // displayValue2(val);
       val = val->next;
     }
-    Serial.println("================");
-    /*  */
+    // Serial.println("================");
+    /*
     char x_label[] = "SINSTS1";
     Value * x_val;
     x_val = getValueFor(x_label);
     displayValue2(x_val);
+    */
   }
+  // Serial.println(ESP.getFreeHeap());
   clearBuffer();
+  clearData();
 }
 
 // raw data acquired form Serial
@@ -259,7 +300,10 @@ void fillBuffer(char c) {
       // Serial.println("End") ;
       buff_started = false;
       buff[buff_idx] = 0;
+      // Serial.println(ESP.getFreeHeap());
       manageFrame();
+      Serial.println(nb_frames++);
+      // Serial.println(ESP.getFreeHeap());
       break;
     default:
       // Serial.print(c);
@@ -295,12 +339,15 @@ void loop() {
   if (Linky.available()){
     c = Linky.read();
     // we should gnore \r (== cr == 13)
-    fillBuffer(c);
-    i++;
+    if (c != 13) {
+      fillBuffer(c);
+      i++;
+    }
   }
+  
   if (i > 5000){
-    Serial.println(F("XXXX"));
-    delay(5000);
+    // Serial.println(F("XXXX"));
+    // delay(5000);
     i = 0;
   }
 }
