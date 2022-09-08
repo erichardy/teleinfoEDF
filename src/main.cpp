@@ -48,20 +48,25 @@ using namespace std;
 #define BUFF_SIZE 3000
 #define BLOCKSIZE 50
 
+// max sizes of null terminated strings
+#define LABEL_MAX 10
+#define VALUE_MAX 110
+#define HORO_MAX 15
+#define LINE_MAX 150
+#define VALUES_MAX 55  // max number of fields
+
 // #include "LibTeleinfo.h" 
 
 uint8_t receiver_mac[] = {0x36, 0x33, 0x33, 0x33, 0x33, 0x33};
 char c;
 uint32_t i = 0;
 uint32_t n = 0;
-uint32_t mem1 = 0;
-uint32_t mem2 = 0;
-uint32_t mem3 = 0;
 
 char buff[3000];
 uint32_t buff_idx = 0;
 bool buff_started = false;
 uint32_t nb_frames = 0;
+uint8_t nb_fields = 0;
 
 SoftwareSerial Linky;
 
@@ -70,21 +75,25 @@ SoftwareSerial Linky;
 typedef struct _Value Value;
 struct _Value
 {
-  Value *next; // next element
-  time_t  ts;      // TimeStamp of data if any
   char checksum;// checksum
-  char  * label;    // LABEL of value name
-  char  * value;   // value
-  char  * horo;    // date if any
-  char  * line;    // The full raw line containing label [+ horo] + value + checksum
+  char  label[LABEL_MAX];    // LABEL of value name
+  char  value[VALUE_MAX];   // value
+  char  horo[HORO_MAX];    // date if any
+  char  line[LINE_MAX];    // The full raw line containing label [+ horo] + value + checksum
 };
 
-typedef struct _valuesList valuesList;
-struct _valuesList {
-    Value * first;
-    uint32_t number;
-};
-valuesList values;
+Value values[55];
+
+void clearValues() {
+  uint8_t i = 0;
+  for (i = 0; i < VALUES_MAX; i++) {
+    values[i].checksum = 0;
+    memset(values[i].label, 0, LABEL_MAX);
+    memset(values[i].value, 0, VALUE_MAX);
+    memset(values[i].horo, 0, HORO_MAX);
+    memset(values[i].line, 0, LINE_MAX);
+  }
+}
 /*
    displayValue : should replace cout with Serial.print
 */
@@ -134,15 +143,10 @@ void clearBuffer() {
    Le format utilisé pour les horodates est SAAMMJJhhmmss,
    c'est-à-dire Saison, Année, Mois, Jour, heure, minute, seconde.
 */
-Value setValueFields(Value * value) {
+void setValueFields(Value val) {
     char * line;
     char * field;
-    uint8_t len;
-    uint8_t nb_fields = 0;
     uint8_t i = 0;
-    len = strlen(value->line);
-    line = (char *) malloc(len + 1);
-    strcpy(line, value->line);
     // first read of the line to count the fields
     // maybe more efficient with strpbrk
     // see https://cplusplus.com/reference/cstring/strpbrk/
@@ -153,80 +157,47 @@ Value setValueFields(Value * value) {
     }
     i = 0;
     free(line);
-    line = (char *) malloc(len + 1);
-    strcpy(line, value->line);
+    // strcpy(line, value->line);
     field = strtok(line, "\t");
     while (field != NULL) {
         // cout << field;
         if (i == 0) {
-            value->label = (char *) malloc(strlen(field));
-            strcpy(value->label, field);
         }
         if (nb_fields == 3) {
-            if (i == 1) value->value = field;
-            if (i == 2) value->checksum = *field;
-            value->horo = NULL;
         }
         if (nb_fields == 4) {
-            if (i == 1) value->horo = field;
-            if (i == 2) value->value = field;
-            if (i == 3) value->checksum = *field;
         }
         field = strtok(NULL, "\t");
         i++;
     }
-    return(*value);
+    return;
 }
 
 /*
-Create a list of all lines of the buffer/frame
-Each line is a struct Value. In this function,
-only 'line' and 'next' attributes are set.
-The struct 'Values' is used to manage the chained list
-of values.
+return _nb_fields
 */
-void getValuesFromFrame() {
-    // valuesList values;
-    uint32_t number = 0;
-    char * F_line; // one line from Frame _F_
-    int len;
-    Value * prev_value;
-    Value * tmp_value;
-
-    F_line = strtok(buff, "\n");
-    number = 0;
-    while (F_line != NULL) {
-        len = strlen(F_line) + 1;
-        Value * current_value = new Value;
-
-        current_value->line = F_line;
-        if (number == 0) {
-            current_value->next = NULL;
-            values.first = current_value;
-            values.number = 0;
-        } else {
-            current_value->next = NULL;
-            prev_value->next = current_value;
-            values.number = number;
-        }
-        prev_value = current_value;
-        Serial.print(len);
-        Serial.print(":");
-        Serial.println(F_line);
-        F_line = strtok(NULL, "\n");
-        number++;
-    }
+uint8_t getLinesFromFrame() {
+  char * F_line;
+  uint8_t _nb_lines = 0;
+  F_line = strtok(buff, "\n");
+  while (F_line != NULL) {
+    strcpy(values[_nb_lines].line, F_line);
+      F_line = strtok(NULL, "\n");
+      _nb_lines++;
+  }
+  return(_nb_lines);
 }
 
 Value * getValueFor(char * label)   {
     Value *val; // pointer returned
-    val = values.first;
+    /* val = values.first;
     while (val) {
         if (!strcmp(val->label, label)) {
             break;
         }
         val = val->next;
     }
+    */
     return val;
 }
 
@@ -234,22 +205,19 @@ Value * getValueFor(char * label)   {
 buffer == frame
 */
 void manageFrame() {
-  // valuesList values;
-  Value * val;
   char * F_line;
-  uint8_t len;
+  uint8_t nb_lines;
+  uint8_t i = 0;
 
   // Serial.println(ESP.getFreeHeap());
-  getValuesFromFrame();
-  
-  // Serial.println(values.number);
-  // Serial.println(ESP.getFreeHeap());
-  if (values.number == 52) {
-    val = values.first;
-    while (val) {
-      setValueFields(val);
+  nb_lines = getLinesFromFrame();
+  Serial.print("nb lines :");
+  Serial.println(nb_lines);
+  if (nb_lines > 0) {
+    for (i = 0; i < nb_lines; i++) {
+      Serial.print(values->line);
+      // setValueFields(values[i]);
       // displayValue2(val);
-      val = val->next;
     }
     // Serial.println("================");
     /*
@@ -278,7 +246,7 @@ void fillBuffer(char c) {
       buff_started = false;
       buff[buff_idx] = 0;
       manageFrame();
-      Serial.println(nb_frames++);
+      // Serial.println(nb_frames++);
       break;
     default:
       // Serial.print(c);
@@ -303,6 +271,7 @@ void setup() {
   ESPNow.init();
   ESPNow.add_peer(receiver_mac);
   */
+ clearValues();
 }
 
 void loop() {
@@ -322,7 +291,7 @@ void loop() {
   
   if (i > 5000){
     // Serial.println(F("XXXX"));
-    delay(10000);
+    delay(5000);
     i = 0;
   }
 }
