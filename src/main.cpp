@@ -20,6 +20,7 @@ https://www.javatpoint.com/how-to-split-strings-in-cpp
 This version suffer of memory management.
 An other version should be developped !!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+We will use static variables/arrays/...to store data
 */
 
 #include <cstring>
@@ -122,28 +123,6 @@ void clearBuffer() {
   buff_started = false;
 }
 
-void clearData() {
-  Value * val;
-  Value * next;
-  Serial.println(ESP.getFreeHeap());  
-  /* */
-  val = values.first;
-  /*
-  while (val != NULL) {
-    free(val->label);
-    free(val->line);
-    free(val->horo);
-    // free(val->ts);
-    free(val->value);
-    // we go to the last
-    val = val->next;
-    // val = next;
-  }
-  Serial.println(ESP.getFreeHeap());
-  */
-  /* */
-}
-
 /* set the fields from each line which contains
    label\tvalue\tchecksum\0
    or
@@ -225,15 +204,15 @@ void getValuesFromFrame() {
             current_value->next = NULL;
             values.first = current_value;
             values.number = 0;
-            // Serial.println((uint32_t) values.first);
-            // tmp_value = values.first;
-            // Serial.println(tmp_value->line);
         } else {
             current_value->next = NULL;
             prev_value->next = current_value;
             values.number = number;
         }
         prev_value = current_value;
+        Serial.print(len);
+        Serial.print(":");
+        Serial.println(F_line);
         F_line = strtok(NULL, "\n");
         number++;
     }
@@ -266,7 +245,6 @@ void manageFrame() {
   // Serial.println(values.number);
   // Serial.println(ESP.getFreeHeap());
   if (values.number == 52) {
-  /* */
     val = values.first;
     while (val) {
       setValueFields(val);
@@ -283,7 +261,6 @@ void manageFrame() {
   }
   // Serial.println(ESP.getFreeHeap());
   clearBuffer();
-  clearData();
 }
 
 // raw data acquired form Serial
@@ -300,10 +277,8 @@ void fillBuffer(char c) {
       // Serial.println("End") ;
       buff_started = false;
       buff[buff_idx] = 0;
-      // Serial.println(ESP.getFreeHeap());
       manageFrame();
       Serial.println(nb_frames++);
-      // Serial.println(ESP.getFreeHeap());
       break;
     default:
       // Serial.print(c);
@@ -347,7 +322,7 @@ void loop() {
   
   if (i > 5000){
     // Serial.println(F("XXXX"));
-    // delay(5000);
+    delay(10000);
     i = 0;
   }
 }
