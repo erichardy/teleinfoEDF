@@ -271,9 +271,13 @@ void manageFrame() {
     display.clearDisplay();
     display.setCursor(0,0);
     display.println(x_val);
-    sprintf(x_val,"%i", nb_frames++);
+    sprintf(x_val,"%i", nb_frames);
     display.print(x_val);
     display.display();
+
+    // Serial.print(F(" "));
+    // Serial.print(F(nb_frames));
+    nb_frames++;
     // Serial.println("----------------------");
   }
   clearValues();

@@ -43,6 +43,20 @@ Divers
 Un exemple de récupération de données TIC avec arduino en C++ :
 https://forum.arduino.cc/t/softwareserial-et-deuxieme-uart-pour-arduino-nano/359978/2
 
+Power
+=====
+
+
+Erreur : LoadProhibited
+LoadProhibited, StoreProhibited
+These CPU exceptions happen when an application attempts to read from or write to an 
+invalid memory location. The address which has been written/read is found in the EXCVADDR register 
+in the register dump. If this address is zero, it usually means that the application has attempted to 
+dereference a NULL pointer. If this address is close to zero, it usually means that the application 
+has attempted to access a member of a structure, but the pointer to the structure is NULL. 
+If this address is something else (garbage value, not in 0x3fxxxxxx - 0x6xxxxxxx range), 
+it likely means that the pointer used to access the data is either not initialized or has been corrupted.
+
 
 
 
