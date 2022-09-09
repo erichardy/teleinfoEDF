@@ -23,7 +23,6 @@ An other version should be developped !!!!
 We will use static variables/arrays/...to store data
 */
 
-#include <cstring>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -244,40 +243,44 @@ void manageFrame() {
       setValueFields(&values[i]);
       // displayValue2(&values[i]);
     }
-    
+    uint16_t i_SINSTS;
+    uint16_t i_SINSTS1;
+    uint16_t i_SINSTS2;
+    uint16_t i_SINSTS3;
     char x_label[20];
-    strcpy(x_label, "DATE");
+    
     char * x_val;
+    strcpy(x_label,"SINSTS");
     x_val = getValueFor(x_label);
-    Serial.print(x_label) ;
-    Serial.print(" ");
-    Serial.println(x_val);
+    i_SINSTS = atoi(x_val);
 
     strcpy(x_label,"SINSTS1");
     x_val = getValueFor(x_label);
-    Serial.print(x_label) ;
-    Serial.print(" ");
-    Serial.println(x_val);
+    i_SINSTS1 = atoi(x_val);
 
     strcpy(x_label,"SINSTS2");
     x_val = getValueFor(x_label);
-    Serial.print(x_label) ;
-    Serial.print(" ");
-    Serial.println(x_val);
+    i_SINSTS2 = atoi(x_val);
 
     strcpy(x_label,"SINSTS3");
     x_val = getValueFor(x_label);
-    Serial.print(x_label) ;
-    Serial.print(" ");
-    Serial.println(x_val);
+    i_SINSTS3 = atoi(x_val);
+    memset(x_val, 0, 20);
+    sprintf(x_val, "%i %i %i", i_SINSTS1, i_SINSTS2, i_SINSTS3);
     
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println(x_val);
+    sprintf(x_val,"%i", nb_frames++);
+    display.print(x_val);
+    display.display();
     // Serial.println("----------------------");
   }
   clearValues();
   clearBuffer();
-  Serial.println(nb_frames++);
-  Serial.println(ESP.getFreeHeap());
-  Serial.println("----------------------");
+  // Serial.println(nb_frames++);
+  // Serial.println(ESP.getFreeHeap());
+  // Serial.println("----------------------");
   
 }
 
@@ -309,15 +312,14 @@ void setup() {
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // Address 0x3C for 128x32
   display.display();
   delay(1000);
-  display.setTextSize(1);
+  display.setRotation(2); // vertical flip
+  display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(0,0);
-  display.print("OK !");
   display.display();
+  display.clearDisplay();
   delay(2000);
-  display.println("                    ");
-  display.print("                    ");
-  display.display();
+
   // END display
   Serial.println("ESPNow..");
   Serial.print("MAC Address : ");
