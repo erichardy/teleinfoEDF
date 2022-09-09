@@ -2,6 +2,9 @@
 // ESP32 API references : https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/index.html
 //
 // https://arduinojson.org/
+//
+// Fatal errors :
+// https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/fatal-errors.html
 
 #include <Arduino.h>
 /*
@@ -13,14 +16,6 @@ E03	24:0A:C4:5F:77:B0
 cf strtok fonction: https://en.cppreference.com/w/cpp/string/byte/strtok
 could be very usefull here !!!
 https://www.javatpoint.com/how-to-split-strings-in-cpp
-*/
-
-/*
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-This version suffer of memory management.
-An other version should be developped !!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-We will use static variables/arrays/...to store data
 */
 
 #include <iostream>
@@ -61,8 +56,6 @@ using namespace std;
 #define DATA_LINE_MAX 150
 #define VALUES_MAX 55  // max number of fields
 
-// #include "LibTeleinfo.h" 
-
 uint8_t receiver_mac[] = {0x36, 0x33, 0x33, 0x33, 0x33, 0x33};
 char c;
 uint32_t i = 0;
@@ -100,21 +93,8 @@ void clearValues() {
     memset(values[i].line, 0, DATA_LINE_MAX);
   }
 }
-/*
-   displayValue : should replace cout with Serial.print
-*/
-void displayValue(Value * val) {
-    cout << "Label :" << val->label << endl;
-    cout << "Value :" << val->value << endl;
-    if (val->horo) {
-        cout << "Horo :" << val->horo << endl;
-    } else {
-        cout << "Horo : NONE" << endl;
-    }
-    cout << "Checksum :" << val->checksum << endl;
-}
 
-void displayValue2(Value * val) {
+void displayValue(Value * val) {
     Serial.print("Label :");
     Serial.println(val->label);
     Serial.print("Value :");
@@ -131,7 +111,6 @@ void displayValue2(Value * val) {
     Serial.println(val->checksum);
     Serial.println(val->line);
 }
-
 
 void clearBuffer() {
   memset(buff, 0, BUFF_SIZE);
@@ -156,20 +135,16 @@ void setValueFields(Value *val) {
   char _c;
   uint8_t i = 0;
   uint8_t nb_fields = 0;
-  // find how much \t in the line ?
   strcpy(line, val->line) ;
-
-  // Serial.println(line);
   i = 0;
-  c = line[i];
-  while (c) {
-    if (c == HT) {
+  _c = line[i];
+  while (_c) {
+    if (_c == HT) {
       nb_fields++;
     }
-    c = line[++i];
+    _c = line[++i];
   }
   i = 0;
-  // strcpy(line, value->line);
   field = strtok(line, "\t");
   strcpy(val->label, field);
   //
@@ -213,8 +188,8 @@ uint8_t getLinesFromFrame() {
   F_line = strtok(buff, "\n");
   while (F_line != NULL) {
     strcpy(values[_nb_lines].line, F_line);
-      F_line = strtok(NULL, "\n");
-      _nb_lines++;
+    F_line = strtok(NULL, "\n");
+    _nb_lines++;
   }
   return(_nb_lines);
 }
@@ -241,7 +216,7 @@ void manageFrame() {
     /* */
     for (i = 0; i < nb_fields; i++) {
       setValueFields(&values[i]);
-      // displayValue2(&values[i]);
+      // displayValue(&values[i]);
     }
     uint16_t i_SINSTS;
     uint16_t i_SINSTS1;
@@ -275,22 +250,18 @@ void manageFrame() {
     display.print(x_val);
     display.display();
 
-    // Serial.print(F(" "));
-    // Serial.print(F(nb_frames));
+    Serial.print(" ");
+    Serial.print(nb_frames);
     nb_frames++;
-    // Serial.println("----------------------");
   }
   clearValues();
   clearBuffer();
-  // Serial.println(nb_frames++);
   // Serial.println(ESP.getFreeHeap());
-  // Serial.println("----------------------");
-  
 }
 
 // raw data acquired form Serial
 // buff is a global variable.
-void fillBuffer(char c) {
+void fillBuffer(char c) {      
   switch (c)  {
     case EGR:
       break;
@@ -306,9 +277,17 @@ void fillBuffer(char c) {
       if (buff_started) {
         buff[buff_idx++] = c;
       }
-  }
+    }
 }
 
+void getData() {
+  while (1) {
+    if (Linky.available()){
+      c = Linky.read();
+      fillBuffer(c);
+    }
+  }
+}
 
 void setup() {
   Serial.begin(115200);
@@ -317,7 +296,7 @@ void setup() {
   display.display();
   delay(1000);
   display.setRotation(2); // vertical flip
-  display.setTextSize(2);
+  display.setTextSize(1.5);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(0,0);
   display.display();
@@ -330,26 +309,24 @@ void setup() {
   Serial.println(WiFi.macAddress());
   // pinMode(ONBOARD_LED, OUTPUT);
   Linky.begin(9600, SWSERIAL_7E1, 16, 4);
-  // Linky.begin(16, 4);
   /*
   WiFi.mode(WIFI_MODE_STA);
   WiFi.disconnect();
   ESPNow.init();
   ESPNow.add_peer(receiver_mac);
-
   */
- clearValues();
+  clearValues();
 }
 
 void loop() {
-  static uint32_t i = 0;
-  /* static uint8_t a = 0;
-  delay(100);
+  getData();
+  
+  /*
   ESPNow.send_message(receiver_mac, &a, 1);
-  Serial.println(a++); */
+  Serial.println(a++); 
   if (Linky.available()){
     c = Linky.read();
     // Serial.write(c);
     fillBuffer(c);
-  }
+  }*/
 }
