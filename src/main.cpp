@@ -37,6 +37,13 @@ We will use static variables/arrays/...to store data
 #include <WiFi.h>
 #include "ESPNowW.h"
 
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#define WIRE Wire
+Adafruit_SSD1306 display = Adafruit_SSD1306(128, 32, &WIRE);
+
 using namespace std;
 
 #define STX 0x02
@@ -52,7 +59,7 @@ using namespace std;
 #define LABEL_MAX 10
 #define VALUE_MAX 110
 #define HORO_MAX 15
-#define LINE_MAX 150
+#define DATA_LINE_MAX 150
 #define VALUES_MAX 55  // max number of fields
 
 // #include "LibTeleinfo.h" 
@@ -79,7 +86,7 @@ struct _Value
   char  label[LABEL_MAX];    // LABEL of value name
   char  value[VALUE_MAX];   // value
   char  horo[HORO_MAX];    // date if any
-  char  line[LINE_MAX];    // The full raw line containing label [+ horo] + value + checksum
+  char  line[DATA_LINE_MAX];    // The full raw line containing label [+ horo] + value + checksum
 };
 
 Value values[55];
@@ -91,7 +98,7 @@ void clearValues() {
     memset(values[i].label, 0, LABEL_MAX);
     memset(values[i].value, 0, VALUE_MAX);
     memset(values[i].horo, 0, HORO_MAX);
-    memset(values[i].line, 0, LINE_MAX);
+    memset(values[i].line, 0, DATA_LINE_MAX);
   }
 }
 /*
@@ -123,6 +130,7 @@ void displayValue2(Value * val) {
     }
     Serial.print("Checksum :");
     Serial.println(val->checksum);
+    Serial.println(val->line);
 }
 
 
@@ -143,34 +151,58 @@ void clearBuffer() {
    Le format utilisé pour les horodates est SAAMMJJhhmmss,
    c'est-à-dire Saison, Année, Mois, Jour, heure, minute, seconde.
 */
-void setValueFields(Value val) {
-    char * line;
-    char * field;
-    uint8_t i = 0;
-    // first read of the line to count the fields
-    // maybe more efficient with strpbrk
-    // see https://cplusplus.com/reference/cstring/strpbrk/
-    field = strtok(line, "\t");
-    while (field != NULL) {
-        nb_fields++;
-        field = strtok(NULL, "\t");
+void setValueFields(Value *val) {
+  char line[DATA_LINE_MAX];
+  char * field;
+  char _c;
+  uint8_t i = 0;
+  uint8_t nb_fields = 0;
+  // find how much \t in the line ?
+  strcpy(line, val->line) ;
+
+  // Serial.println(line);
+  i = 0;
+  c = line[i];
+  while (c) {
+    if (c == HT) {
+      nb_fields++;
     }
-    i = 0;
-    free(line);
-    // strcpy(line, value->line);
-    field = strtok(line, "\t");
-    while (field != NULL) {
-        // cout << field;
-        if (i == 0) {
-        }
-        if (nb_fields == 3) {
-        }
-        if (nb_fields == 4) {
-        }
-        field = strtok(NULL, "\t");
-        i++;
+    c = line[++i];
+  }
+  i = 0;
+  // strcpy(line, value->line);
+  field = strtok(line, "\t");
+  strcpy(val->label, field);
+  //
+  field = strtok(NULL, "\t");
+  if (nb_fields == 2) {
+    strcpy(val->value, field);
+  } else {
+    strcpy(val->horo, field);
+  }
+  //
+  field = strtok(NULL, "\t");
+  if (nb_fields == 2) {
+    val->checksum = field[0];
+  } else {
+    strcpy(val->value, field);
+  }
+  //
+  field = strtok(NULL, "\t");
+  if (field != NULL) {
+    val->checksum = field[0];
+  }
+  if (!strcmp(val->label, "DATE")) {
+    uint8_t idate = 0;
+    uint8_t ihoro = 0;
+    for (idate = 5; idate < 18; idate++) {
+      val->value[ihoro] = line[idate];
+      val->horo[ihoro++] = line[idate];
     }
-    return;
+    val->horo[ihoro] = 0;
+    val->checksum = line[20];
+  }
+  return;
 }
 
 /*
@@ -188,68 +220,82 @@ uint8_t getLinesFromFrame() {
   return(_nb_lines);
 }
 
-Value * getValueFor(char * label)   {
-    Value *val; // pointer returned
-    /* val = values.first;
-    while (val) {
-        if (!strcmp(val->label, label)) {
-            break;
-        }
-        val = val->next;
+char * getValueFor(char * label)   {
+  uint8_t i;
+  for (i = 0; i < nb_fields; i++) {
+    if (! strcmp(values[i].label, label)) {
+      break;
     }
-    */
-    return val;
+  }
+  return(values[i].value);
 }
 
 /*
 buffer == frame
 */
 void manageFrame() {
-  char * F_line;
-  uint8_t nb_lines;
   uint8_t i = 0;
 
   // Serial.println(ESP.getFreeHeap());
-  nb_lines = getLinesFromFrame();
-  Serial.print("nb lines :");
-  Serial.println(nb_lines);
-  if (nb_lines > 0) {
-    for (i = 0; i < nb_lines; i++) {
-      Serial.print(values->line);
-      // setValueFields(values[i]);
-      // displayValue2(val);
+  nb_fields = getLinesFromFrame();
+  if (nb_fields == 53) {
+    /* */
+    for (i = 0; i < nb_fields; i++) {
+      setValueFields(&values[i]);
+      // displayValue2(&values[i]);
     }
-    // Serial.println("================");
-    /*
-    char x_label[] = "SINSTS1";
-    Value * x_val;
+    
+    char x_label[20];
+    strcpy(x_label, "DATE");
+    char * x_val;
     x_val = getValueFor(x_label);
-    displayValue2(x_val);
-    */
+    Serial.print(x_label) ;
+    Serial.print(" ");
+    Serial.println(x_val);
+
+    strcpy(x_label,"SINSTS1");
+    x_val = getValueFor(x_label);
+    Serial.print(x_label) ;
+    Serial.print(" ");
+    Serial.println(x_val);
+
+    strcpy(x_label,"SINSTS2");
+    x_val = getValueFor(x_label);
+    Serial.print(x_label) ;
+    Serial.print(" ");
+    Serial.println(x_val);
+
+    strcpy(x_label,"SINSTS3");
+    x_val = getValueFor(x_label);
+    Serial.print(x_label) ;
+    Serial.print(" ");
+    Serial.println(x_val);
+    
+    // Serial.println("----------------------");
   }
-  // Serial.println(ESP.getFreeHeap());
+  clearValues();
   clearBuffer();
+  Serial.println(nb_frames++);
+  Serial.println(ESP.getFreeHeap());
+  Serial.println("----------------------");
+  
 }
 
 // raw data acquired form Serial
 // buff is a global variable.
 void fillBuffer(char c) {
   switch (c)  {
+    case EGR:
+      break;
     case STX:
-      // Serial.println("Start") ;
-      // clearBuffer();
       buff_started = true;
       break;
     case ETX:
-      // we convert buffer to frame, then later used data
-      // Serial.println("End") ;
       buff_started = false;
       buff[buff_idx] = 0;
       manageFrame();
-      // Serial.println(nb_frames++);
       break;
     default:
-      // Serial.print(c);
       if (buff_started) {
         buff[buff_idx++] = c;
       }
@@ -259,6 +305,20 @@ void fillBuffer(char c) {
 
 void setup() {
   Serial.begin(115200);
+  // display
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // Address 0x3C for 128x32
+  display.display();
+  delay(1000);
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0,0);
+  display.print("OK !");
+  display.display();
+  delay(2000);
+  display.println("                    ");
+  display.print("                    ");
+  display.display();
+  // END display
   Serial.println("ESPNow..");
   Serial.print("MAC Address : ");
   Serial.println(WiFi.macAddress());
@@ -270,6 +330,7 @@ void setup() {
   WiFi.disconnect();
   ESPNow.init();
   ESPNow.add_peer(receiver_mac);
+
   */
  clearValues();
 }
@@ -282,16 +343,7 @@ void loop() {
   Serial.println(a++); */
   if (Linky.available()){
     c = Linky.read();
-    // we should gnore \r (== cr == 13)
-    if (c != 13) {
-      fillBuffer(c);
-      i++;
-    }
-  }
-  
-  if (i > 5000){
-    // Serial.println(F("XXXX"));
-    delay(5000);
-    i = 0;
+    // Serial.write(c);
+    fillBuffer(c);
   }
 }

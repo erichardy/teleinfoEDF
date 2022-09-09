@@ -4,6 +4,8 @@
 .vscode/launch.json
 .vscode/ipch
 
+raw_frames
+
 platformio-device-monitor*
 # misc
 tmp/
