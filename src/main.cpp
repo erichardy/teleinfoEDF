@@ -66,6 +66,7 @@ uint32_t buff_idx = 0;
 bool buff_started = false;
 uint32_t nb_frames = 0;
 uint8_t nb_fields = 0;
+bool frame_corrupted = false;
 
 SoftwareSerial Linky;
 
@@ -94,6 +95,12 @@ void clearValues() {
   }
 }
 
+void clearBuffer() {
+  memset(buff, 0, BUFF_SIZE);
+  buff_idx = 0;
+  buff_started = false;
+}
+
 void displayValue(Value * val) {
     Serial.print("Label :");
     Serial.println(val->label);
@@ -112,11 +119,6 @@ void displayValue(Value * val) {
     Serial.println(val->line);
 }
 
-void clearBuffer() {
-  memset(buff, 0, BUFF_SIZE);
-  buff_idx = 0;
-  buff_started = false;
-}
 
 /* set the fields from each line which contains
    label\tvalue\tchecksum\0
@@ -129,7 +131,7 @@ void clearBuffer() {
    Le format utilisé pour les horodates est SAAMMJJhhmmss,
    c'est-à-dire Saison, Année, Mois, Jour, heure, minute, seconde.
 */
-void setValueFields(Value *val) {
+bool setValueFields(Value *val) {
   char line[DATA_LINE_MAX];
   char * field;
   char _c;
@@ -156,10 +158,15 @@ void setValueFields(Value *val) {
   }
   //
   field = strtok(NULL, "\t");
-  if (nb_fields == 2) {
-    val->checksum = field[0];
+  if (field != NULL) {
+    if (nb_fields == 2) {
+      val->checksum = field[0];
+    } else {
+      strcpy(val->value, field);
+    }
   } else {
-    strcpy(val->value, field);
+    frame_corrupted = true;
+    return(false);
   }
   //
   field = strtok(NULL, "\t");
@@ -176,11 +183,11 @@ void setValueFields(Value *val) {
     val->horo[ihoro] = 0;
     val->checksum = line[20];
   }
-  return;
+  return(true);
 }
 
 /*
-return _nb_fields
+return nb_fields
 */
 uint8_t getLinesFromFrame() {
   char * F_line;
@@ -209,14 +216,19 @@ buffer == frame
 */
 void manageFrame() {
   uint8_t i = 0;
+  bool frame_ok;
 
   // Serial.println(ESP.getFreeHeap());
   nb_fields = getLinesFromFrame();
   if (nb_fields == 53) {
     /* */
     for (i = 0; i < nb_fields; i++) {
-      setValueFields(&values[i]);
+      frame_ok = setValueFields(&values[i]);
       // displayValue(&values[i]);
+    }
+    if (!frame_ok) {
+      Serial.println("Frame Corrupted");
+      return;
     }
     uint16_t i_SINSTS;
     uint16_t i_SINSTS1;
@@ -249,19 +261,20 @@ void manageFrame() {
     sprintf(x_val,"%i", nb_frames);
     display.print(x_val);
     display.display();
-
-    Serial.print(" ");
-    Serial.print(nb_frames);
+    // Serial.print(" ");
+    // Serial.print(nb_frames);
     nb_frames++;
+    // delay(1000);
   }
   clearValues();
   clearBuffer();
   // Serial.println(ESP.getFreeHeap());
+  
 }
 
 // raw data acquired form Serial
 // buff is a global variable.
-void fillBuffer(char c) {      
+void fillBuffer(char c) {    
   switch (c)  {
     case EGR:
       break;
@@ -320,6 +333,7 @@ void setup() {
 
 void loop() {
   getData();
+  // fillBuffer();
   
   /*
   ESPNow.send_message(receiver_mac, &a, 1);
