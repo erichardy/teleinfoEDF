@@ -4,7 +4,8 @@
 	- la carte électronique de démodulation
 	- l'ESP32 avec emplacement de la connexion USB pour re-programmation éventuelle (et fort probable !)
 	- prise d'alimentation pour fournir du 8V cc
-	- éventuellement un convertisseur buck auquel seront associés des condensateurs de filtrage.
+	- éventuellement un convertisseur buck auquel seront associés des condensateurs de filtrage... ou une alim de récup
+	  + un LM317
 	- ou alimentaion incluse => sortie de câble 220V
 
 * voir qu'elle est la consommation totale : démodulation + ESP32. On sait déjà que la démodulation consomme 15mA.
