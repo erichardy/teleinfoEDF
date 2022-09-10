@@ -1,0 +1,8 @@
+
+* Json : sérialisation des données pour les transmettre par ESP-Now à l'ESP qui a l'écran
+
+* ESP-Now : communication avec l'ESP qui a l'écran
+
+* faire fonctionner un écran avec entrée composite sur l'ESP chargé de visualiser les données
+
+
