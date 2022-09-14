@@ -25,11 +25,12 @@ https://www.javatpoint.com/how-to-split-strings-in-cpp
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
+using namespace std;
 
 // https://github.com/plerup/espsoftwareserial/
 #include <SoftwareSerial.h>
 #include <WiFi.h>
-#include "ESPNowW.h"
+#include <esp_now.h>
 
 #include <SPI.h>
 #include <Wire.h>
@@ -38,7 +39,34 @@ https://www.javatpoint.com/how-to-split-strings-in-cpp
 #define WIRE Wire
 Adafruit_SSD1306 display = Adafruit_SSD1306(128, 32, &WIRE);
 
-using namespace std;
+// #include <ArduinoJson.h>
+// const int capacity = JSON_OBJECT_SIZE(3) + 2 * JSON_OBJECT_SIZE(1);
+// StaticJsonDocument<capacity> doc;
+
+/*
+DATE    E220909150127
+SINSTS1 00243
+SINSTS2 00040
+SINSTS3 00019
+SMAXSN1 E220909121952   00321
+SMAXSN2 E220909125609   01682
+SMAXSN3 E220909045921   00018
+SMAXSN1-1   E220908223959   01305
+SMAXSN2-1   E220908001241   01347
+SMAXSN3-1   E220908020951   00019
+*/
+typedef struct teleinfoData {
+  char date[14];
+  char sinsts1[6];
+  char sinsts2[6];
+  char sinsts3[6];
+} teleinfoData;
+teleinfoData tData;
+
+// E03	24:0A:C4:5F:77:B0
+uint8_t receiver_mac[] = {0x24, 0x0A, 0xC4, 0x5F, 0x77, 0xB0};
+esp_now_peer_info_t peerInfo;
+
 
 #define STX 0x02
 #define ETX 0x03
@@ -56,7 +84,6 @@ using namespace std;
 #define DATA_LINE_MAX 150
 #define VALUES_MAX 55  // max number of fields
 
-uint8_t receiver_mac[] = {0x36, 0x33, 0x33, 0x33, 0x33, 0x33};
 char c;
 uint32_t i = 0;
 uint32_t n = 0;
@@ -302,6 +329,12 @@ void getData() {
   }
 }
 
+// Callback function called when data is sent
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
 void setup() {
   Serial.begin(115200);
   // display
@@ -322,25 +355,29 @@ void setup() {
   Serial.println(WiFi.macAddress());
   // pinMode(ONBOARD_LED, OUTPUT);
   Linky.begin(9600, SWSERIAL_7E1, 16, 4);
-  /*
-  WiFi.mode(WIFI_MODE_STA);
-  WiFi.disconnect();
-  ESPNow.init();
-  ESPNow.add_peer(receiver_mac);
-  */
+  /* */
+  WiFi.mode(WIFI_STA);
+  // Initilize ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  // Register the send callback
+  esp_now_register_send_cb(OnDataSent);
+  memcpy(peerInfo.peer_addr, receiver_mac, 6);
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
+  
+  // Add peer        
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
+  /* */
   clearValues();
 }
 
 void loop() {
   getData();
-  // fillBuffer();
-  
-  /*
-  ESPNow.send_message(receiver_mac, &a, 1);
-  Serial.println(a++); 
-  if (Linky.available()){
-    c = Linky.read();
-    // Serial.write(c);
-    fillBuffer(c);
-  }*/
 }
