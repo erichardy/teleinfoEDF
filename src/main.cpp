@@ -32,7 +32,7 @@ using namespace std;
 #include <WiFi.h>
 #include <esp_now.h>
 
-#include <SPI.h>
+// #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -356,13 +356,17 @@ void setup() {
   // pinMode(ONBOARD_LED, OUTPUT);
   Linky.begin(9600, SWSERIAL_7E1, 16, 4);
   /* */
+  WiFi.disconnect(true, true);
   WiFi.mode(WIFI_STA);
+  /* */
   // Initilize ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
+  } else {
+    Serial.println("Initializing ESP-NOW : OK");
   }
-
+  
   // Register the send callback
   esp_now_register_send_cb(OnDataSent);
   memcpy(peerInfo.peer_addr, receiver_mac, 6);
@@ -373,7 +377,12 @@ void setup() {
   if (esp_now_add_peer(&peerInfo) != ESP_OK){
     Serial.println("Failed to add peer");
     return;
+  } else {
+    Serial.println("Add peer : OK");
   }
+  const uint16_t dataSent = 125;
+  esp_err_t result = esp_now_send(receiver_mac, (uint8_t *) &dataSent, sizeof(dataSent));
+  /* */
   /* */
   clearValues();
 }
