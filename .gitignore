@@ -5,6 +5,8 @@
 .vscode/ipch
 .vscode/settings.json
 
+homeWifi.h
+
 raw_frames
 
 platformio-device-monitor*

@@ -29,8 +29,13 @@ using namespace std;
 
 // https://github.com/plerup/espsoftwareserial/
 #include <SoftwareSerial.h>
+
 #include <WiFi.h>
-#include <esp_now.h>
+#include <../lib/homeWifi.h>
+#include <WebServer.h>
+// const char* ssid = HOME_SSID;
+// const char* password = HOME_WIFI_PASS;
+WebServer server(80);
 
 // #include <SPI.h>
 #include <Wire.h>
@@ -39,9 +44,16 @@ using namespace std;
 #define WIRE Wire
 Adafruit_SSD1306 display = Adafruit_SSD1306(128, 32, &WIRE);
 
-// #include <ArduinoJson.h>
-// const int capacity = JSON_OBJECT_SIZE(3) + 2 * JSON_OBJECT_SIZE(1);
-// StaticJsonDocument<capacity> doc;
+#define DEBUG
+// #undef DEBUG
+
+#ifdef DEBUG
+  #define debug(x) Serial.print(x)
+  #define debugln(x) Serial.println(x)
+#else
+  #define debug(x)
+  #define debugln(x)
+#endif
 
 /*
 DATE    E220909150127
@@ -64,8 +76,8 @@ typedef struct teleinfoData {
 teleinfoData tData;
 
 // E03	24:0A:C4:5F:77:B0
-uint8_t receiver_mac[] = {0x24, 0x0A, 0xC4, 0x5F, 0x77, 0xB0};
-esp_now_peer_info_t peerInfo;
+// uint8_t receiver_mac[] = {0x24, 0x0A, 0xC4, 0x5F, 0x77, 0xB0};
+// esp_now_peer_info_t peerInfo;
 
 
 #define STX 0x02
@@ -94,6 +106,8 @@ bool buff_started = false;
 uint32_t nb_frames = 0;
 uint8_t nb_fields = 0;
 bool frame_corrupted = false;
+bool frame_ok = false;
+bool buffer_full = false;
 
 SoftwareSerial Linky;
 
@@ -243,7 +257,7 @@ buffer == frame
 */
 void manageFrame() {
   uint8_t i = 0;
-  bool frame_ok;
+  // bool frame_ok;
 
   // Serial.println(ESP.getFreeHeap());
   nb_fields = getLinesFromFrame();
@@ -293,10 +307,8 @@ void manageFrame() {
     nb_frames++;
     // delay(1000);
   }
-  clearValues();
-  clearBuffer();
-  // Serial.println(ESP.getFreeHeap());
-  
+  // clearValues();
+  // clearBuffer();  
 }
 
 // raw data acquired form Serial
@@ -312,6 +324,7 @@ void fillBuffer(char c) {
       buff_started = false;
       buff[buff_idx] = 0;
       manageFrame();
+      buffer_full = true;
       break;
     default:
       if (buff_started) {
@@ -325,14 +338,77 @@ void getData() {
     if (Linky.available()){
       c = Linky.read();
       fillBuffer(c);
+      if (buffer_full) {
+        break;
+      }
+      // debug(c);
     }
   }
 }
 
+/* Old version, before webserver.
+void getData() {
+  while (1) {
+    if (Linky.available()){
+      c = Linky.read();
+      fillBuffer(c);
+    }
+  }
+}
+*/
+
 // Callback function called when data is sent
+/*
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+*/
+void handleRoot(){  // Page d'accueil La page HTML est mise dans le String page
+//  Syntaxe d'écriture pour être compatible avec le C++ / Arduino
+// String page = " xxxxxxxx ";
+// page += " xxxxx ";
+// etc ...
+  String page = "<!DOCTYPE html>";  // Début page HTML
+    page += "<head>";
+    page += "    <title>Serveur ESP32</title>";
+    page += "    <meta http-equiv='refresh' content='60' name='viewport' content='width=device-width, initial-scale=1' charset='UTF-8'/>";
+    page += "</head>";
+    page += "<body lang='fr'>";
+    page += "    <h1>Serveur</h1>";
+    page += "    <p>Ce serveur est hébergé sur un ESP32</p>";
+    page += "    <p><i>Créé par EH</i></p>";
+    page += "    <p>Une partie du code \"web server\" provient de ";
+    page += "<a target=\"_blank\" href=\"http://emery.claude.free.fr/esp32-serveur-web-simple.html\">";
+    page += "http://emery.claude.free.fr/esp32-serveur-web-simple.html</a></p>";
+    page += "</body>";
+    page += "</html>";  // Fin page HTML
+
+    server.send(200, "text/html", page);  // Envoie de la page HTML
+}
+
+void handleNotFound(){  // Page Not found
+  server.send(404, "text/plain","404: Not found");
+}
+
+void handle_getEDF_Data() {
+  char x_label[20];
+  char * x_val;
+  clearValues();
+  clearBuffer();
+  debug("fram_ok : ");
+  debugln(frame_ok);
+  buffer_full = false;
+  getData();
+  strcpy(x_label,"SINSTS1");
+  x_val = getValueFor(x_label);
+
+  Serial.print("x_val = ");
+  Serial.println(x_val);
+  // server.sendHeader("Location","/");
+  // server.send(303);
+  server.send(200, "text/plain", x_val);
+  
 }
 
 void setup() {
@@ -348,45 +424,38 @@ void setup() {
   display.display();
   display.clearDisplay();
   delay(2000);
-
   // END display
-  Serial.println("ESPNow..");
-  Serial.print("MAC Address : ");
-  Serial.println(WiFi.macAddress());
+  
   // pinMode(ONBOARD_LED, OUTPUT);
   Linky.begin(9600, SWSERIAL_7E1, 16, 4);
-  /* */
-  WiFi.disconnect(true, true);
-  WiFi.mode(WIFI_STA);
-  /* */
-  // Initilize ESP-NOW
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  } else {
-    Serial.println("Initializing ESP-NOW : OK");
-  }
-  
-  // Register the send callback
-  esp_now_register_send_cb(OnDataSent);
-  memcpy(peerInfo.peer_addr, receiver_mac, 6);
-  peerInfo.channel = 0;  
-  peerInfo.encrypt = false;
-  
-  // Add peer        
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
-    Serial.println("Failed to add peer");
-    return;
-  } else {
-    Serial.println("Add peer : OK");
-  }
-  const uint16_t dataSent = 125;
-  esp_err_t result = esp_now_send(receiver_mac, (uint8_t *) &dataSent, sizeof(dataSent));
-  /* */
-  /* */
+  delay(1000);
+  Serial.print("Linky.available() = ");
+  Serial.println(Linky.available());
+  Serial.println(WiFi.macAddress());
   clearValues();
+  Serial.print("Connecting to Wifi...");
+  WiFi.begin(HOME_SSID, HOME_WIFI_PASS);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected..!");
+  Serial.print("Got IP: ");
+  Serial.println(WiFi.localIP());
+  server.on("/", handleRoot);
+  server.on("/data", handle_getEDF_Data);
+  server.onNotFound(handleNotFound);
+  server.begin();
 }
 
 void loop() {
-  getData();
+  // getData();
+  /*
+  if (Linky.available()){
+     c = Linky.read();
+     fillBuffer(c);
+  }
+  */
+  server.handleClient();
 }
