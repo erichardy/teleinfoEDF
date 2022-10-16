@@ -17,6 +17,10 @@ cf strtok fonction: https://en.cppreference.com/w/cpp/string/byte/strtok
 could be very usefull here !!!
 https://www.javatpoint.com/how-to-split-strings-in-cpp
 */
+/*
+For communication between tasks :
+https://techtutorialsx.com/2017/09/13/esp32-arduino-communication-between-tasks-using-freertos-queues/
+*/
 
 #include <iostream>
 #include <iomanip>
@@ -110,6 +114,9 @@ bool frame_ok = false;
 bool buffer_full = false;
 
 SoftwareSerial Linky;
+/************************************/
+TaskHandle_t webserver;
+TaskHandle_t getdata;
 
 /* struct partialy from LibTeleinfo created by C. Hallard
    thanks to C. Hallard http://hallard.me/category/tinfo */
@@ -311,6 +318,14 @@ void manageFrame() {
   clearBuffer();  
 }
 
+char getC() {
+  char c = '\0';
+  while (! Linky.available()) {};
+  c = Linky.read();
+  // debug(c);
+  return c;
+}
+
 // raw data acquired form Serial
 // buff is a global variable.
 void fillBuffer(char c) {    
@@ -336,34 +351,21 @@ void fillBuffer(char c) {
 // buff is a global variable
 void fillBuffer2() {
   buff_idx = 0;
-  c = Linky.read();
+  c = getC();
   // we read a char until we meet the begining of the frame (STX)
   while (c != STX) {
-    c = Linky.read();
+    c = getC();
   }
   // we fill the buffer until we get ETX
   while (c != ETX) {
-    // buff[buff_idx++] = c;
-    debug(c);
-    c = Linky.read();
+    buff[buff_idx++] = c;
+    // debug(c);
+    c = getC();
   }
-  return ;
-
   // we end the buffer with a 0
   buff[buff_idx] = 0;
-}
-
-void getData() {
-  while (1) {
-    if (Linky.available()){
-      c = Linky.read();
-      fillBuffer(c);
-      if (buffer_full) {
-        break;
-      }
-      // debug(c);
-    }
-  }
+  debug("Sortie de fillbuffer2() : ");
+  debugln(buff_idx);
 }
 
 /* Old version, before webserver.
@@ -394,6 +396,7 @@ void handleRoot(){  // Page d'accueil La page HTML est mise dans le String page
     page += "    <p>Une partie du code \"web server\" provient de ";
     page += "<a target=\"_blank\" href=\"http://emery.claude.free.fr/esp32-serveur-web-simple.html\">";
     page += "http://emery.claude.free.fr/esp32-serveur-web-simple.html</a></p>";
+    page += "<p><a href=\"/data\"> get data</a></p>";
     page += "</body>";
     page += "</html>";  // Fin page HTML
 
@@ -412,9 +415,10 @@ void handle_getEDF_Data() {
   /*
   clearValues();
   clearBuffer();
-  debug("fram_ok : ");
+  debug("frame_ok : ");
   debugln(frame_ok);
   getData();
+
   strcpy(x_label,"SINSTS1");
   x_val = getValueFor(x_label);
   
@@ -425,20 +429,26 @@ void handle_getEDF_Data() {
   // server.sendHeader("Location","/");
   // server.send(303);
   // server.send(200, "text/plain", x_val);
+
   server.send(200, "text/plain", itoa(ii, cc, 10));
   ii++;
-  clearBuffer();
-  fillBuffer2();
-  return;
-  /*
-  fillBuffer2();
-  c = buff[i];
-  while (c) {
-    debug(c);
-    c = buff[i++];
-  }
-  */
 }
+
+void getDataCode(void * pvParameters) {
+  for(;;) {
+    if (Linky.available()){
+      c = Linky.read();
+      fillBuffer(c);
+    }
+  }
+}
+
+void webserverCode(void * pvParameters){
+  for(;;){
+      server.handleClient();
+  }
+}
+
 
 void setup() {
   Serial.begin(115200);
@@ -477,15 +487,25 @@ void setup() {
   server.on("/data", handle_getEDF_Data);
   server.onNotFound(handleNotFound);
   server.begin();
+  xTaskCreatePinnedToCore(
+    webserverCode,
+    "webserver",
+    10000, NULL, 1, &webserver, 1
+  );
+  /*
+  xTaskCreatePinnedToCore(
+    getDataCode,
+    "getdata",
+    10000, NULL, 1, &getdata, 0
+  );
+  */
 }
 
 void loop() {
-  static u_int64_t nb = 0;
   // getData();
   /* */
   if (Linky.available()){
      c = Linky.read();
-     nb++;
      fillBuffer(c);
      // debug(c);
   }
