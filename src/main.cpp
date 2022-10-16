@@ -307,8 +307,8 @@ void manageFrame() {
     nb_frames++;
     // delay(1000);
   }
-  // clearValues();
-  // clearBuffer();  
+  clearValues();
+  clearBuffer();  
 }
 
 // raw data acquired form Serial
@@ -331,6 +331,26 @@ void fillBuffer(char c) {
         buff[buff_idx++] = c;
       }
     }
+}
+
+// buff is a global variable
+void fillBuffer2() {
+  buff_idx = 0;
+  c = Linky.read();
+  // we read a char until we meet the begining of the frame (STX)
+  while (c != STX) {
+    c = Linky.read();
+  }
+  // we fill the buffer until we get ETX
+  while (c != ETX) {
+    // buff[buff_idx++] = c;
+    debug(c);
+    c = Linky.read();
+  }
+  return ;
+
+  // we end the buffer with a 0
+  buff[buff_idx] = 0;
 }
 
 void getData() {
@@ -357,13 +377,6 @@ void getData() {
 }
 */
 
-// Callback function called when data is sent
-/*
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("\r\nLast Packet Send Status:\t");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-}
-*/
 void handleRoot(){  // Page d'accueil La page HTML est mise dans le String page
 //  Syntaxe d'écriture pour être compatible avec le C++ / Arduino
 // String page = " xxxxxxxx ";
@@ -394,21 +407,37 @@ void handleNotFound(){  // Page Not found
 void handle_getEDF_Data() {
   char x_label[20];
   char * x_val;
+  char cc[10];
+  static u_int16_t ii = 0;
+  /*
   clearValues();
   clearBuffer();
   debug("fram_ok : ");
   debugln(frame_ok);
-  buffer_full = false;
   getData();
   strcpy(x_label,"SINSTS1");
   x_val = getValueFor(x_label);
-
+  
   Serial.print("x_val = ");
   Serial.println(x_val);
+  */
+  
   // server.sendHeader("Location","/");
   // server.send(303);
-  server.send(200, "text/plain", x_val);
-  
+  // server.send(200, "text/plain", x_val);
+  server.send(200, "text/plain", itoa(ii, cc, 10));
+  ii++;
+  clearBuffer();
+  fillBuffer2();
+  return;
+  /*
+  fillBuffer2();
+  c = buff[i];
+  while (c) {
+    debug(c);
+    c = buff[i++];
+  }
+  */
 }
 
 void setup() {
@@ -434,6 +463,7 @@ void setup() {
   Serial.println(WiFi.macAddress());
   clearValues();
   Serial.print("Connecting to Wifi...");
+
   WiFi.begin(HOME_SSID, HOME_WIFI_PASS);
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
@@ -450,12 +480,16 @@ void setup() {
 }
 
 void loop() {
+  static u_int64_t nb = 0;
   // getData();
-  /*
+  /* */
   if (Linky.available()){
      c = Linky.read();
+     nb++;
      fillBuffer(c);
+     // debug(c);
   }
-  */
-  server.handleClient();
+  
+  /* */
+  // server.handleClient();
 }
