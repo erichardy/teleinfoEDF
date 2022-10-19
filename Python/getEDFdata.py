@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # must adapt shebang above !
 
+# https://docs.python.org/3/library/sqlite3.html
+
 # from pySerial package
 import serial
 from datetime import datetime
