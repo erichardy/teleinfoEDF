@@ -5,6 +5,8 @@
 .vscode/ipch
 .vscode/settings.json
 
+__pycache__
+
 homeWifi.h
 
 raw_frames
