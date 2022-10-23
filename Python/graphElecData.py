@@ -27,7 +27,19 @@ p2 = []
 p3 = []
 labels = []
 
+_yLimits = [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
+_LyLimits = len(_yLimits)
+
 _size = 80
+
+def maxValue(l1, l2, l3):
+    highValue = max([max(l1), max(l2), max(l3)])
+    for v in _yLimits:
+        if highValue < v:
+            return v
+    return 6500
+
+
 
 # This function is called periodically from FuncAnimation
 def animate(i, ts, p1, p2, p3, labels):
@@ -60,9 +72,11 @@ def animate(i, ts, p1, p2, p3, labels):
     labels = labels[-_size:]
 
     # Draw x and y lists
+    ylimit = maxValue(p1, p2, p3)
     ax.clear()
-    ax.axis([1, _size, 0, 5000])
-    # ax.plot(ts, (p1, p2, p3))
+    # auto-scale on y axis
+    ax.axis([1, _size, 0, ylimit])
+
     ax.plot(ts, p1, label='ph 1', color='blue')
     ax.plot(ts, p2, label='ph 2', c='green')
     ax.plot(ts, p3, label='ph 3', c='red')
