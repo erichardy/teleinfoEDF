@@ -6,18 +6,6 @@ from sys import exit
 
 _prev_m = '0'
 
-"""
-f = open("dataEDF", 'r')
-
-def getLine(f):
-    l = f.readline()
-    if l:
-        return l
-    else:
-        return None
-"""
-
-
 # Create figure for plotting
 fig = plt.figure(figsize=[10, 4])
 ax = fig.add_subplot(1, 1, 1)
@@ -41,8 +29,6 @@ def maxValue(l1, l2, l3):
         if highValue < v:
             return v
     return 6500
-
-
 
 # This function is called periodically from FuncAnimation
 def animate(i, ts, p1, p2, p3, labels):
