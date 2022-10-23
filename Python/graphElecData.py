@@ -19,8 +19,11 @@ def getLine(f):
 
 
 # Create figure for plotting
-fig = plt.figure()
+fig = plt.figure(figsize=[10, 4])
 ax = fig.add_subplot(1, 1, 1)
+# print(fig.canvas.get_renderer())
+# print(ax.get_tightbbox(fig.canvas.get_renderer()))
+#       Bbox(x0=93.15277777777777, y0=20.27777777777777, x1=911.0625, y1=357.5)
 ts = []
 p1 = []
 p2 = []
@@ -62,6 +65,10 @@ def animate(i, ts, p1, p2, p3, labels):
     p1.append(ph1)
     p2.append(ph2)
     p3.append(ph3)
+    if m != _prev_m:
+        labels.append(t)
+    else:
+        labels.append(' ')
 
     # Limit x and y lists to 20 items
     # p1 = p1[_size:]
@@ -77,27 +84,20 @@ def animate(i, ts, p1, p2, p3, labels):
     # auto-scale on y axis
     ax.axis([1, _size, 0, ylimit])
 
-    ax.plot(ts, p1, label='ph 1', color='blue')
-    ax.plot(ts, p2, label='ph 2', c='green')
-    ax.plot(ts, p3, label='ph 3', c='red')
-    ax.legend()
+    phase1, = ax.plot(ts, p1, label='ph 1', color='blue')
+    phase2, = ax.plot(ts, p2, label='ph 2', c='green')
+    phase3, = ax.plot(ts, p3, label='ph 3', c='red')
+    legends = ['phase 1 : ' + str(ph1), 'phase 2 : ' + str(ph2), 'phase 3 : '+ str(ph3)]
+    ax.legend(handles=[phase1, phase2, phase3], labels=legends)
+    # ax.annotate("annotation", (0, 1500))
 
     # Format plot
-    """
-    Need to solve labels issue :
-    I don't want a label for each value but for each minute change,
-    the label animated accordingly the values !
-    if m != _prev_m:
-        labels.append(t)
-    else:
-        labels.append(' ')
-    """
-    labels.append(t)
-    plt.xticks(ticks=ts, rotation=45, ha='right')
+    plt.xticks(ticks=ts, labels=labels, rotation=20, ha='right')
     _prev_m = m
-    plt.subplots_adjust(bottom=0.30)
+    plt.subplots_adjust(right=0.98, left=0.08, top=0.90, bottom=0.10)
     plt.title('Consommation électrique par phase en temps réel')
     plt.ylabel('Watts')
+    # print(ax.get_legend_handles_labels())
 
 # Set up plot to call animate() function periodically
 ani = animation.FuncAnimation(fig, animate, fargs=(ts, p1, p2, p3, labels), interval=50)
