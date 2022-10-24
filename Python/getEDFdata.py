@@ -74,7 +74,7 @@ def toNum(s):
         return int(s)
     return None
 
-# to fix
+# to fix in case of None type object
 def getDataLine():
     f = getOneFrame()
     (val, horos, checksums) = getDict(f)
