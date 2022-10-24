@@ -78,12 +78,15 @@ def toNum(s):
 def getDataLine():
     f = getOneFrame()
     (val, horos, checksums) = getDict(f)
-    DATE = toDate(horos['DATE']).isoformat(' ', timespec='seconds')
-    SINSTS1 = val['SINSTS1']
-    SINSTS2 = val['SINSTS2']
-    SINSTS3 = val['SINSTS3']
-    l = DATE + ' ' + SINSTS1 + ' ' + SINSTS2 + ' ' + SINSTS3
-    return l
+    try:
+        DATE = toDate(horos['DATE']).isoformat(' ', timespec='seconds')
+        SINSTS1 = val['SINSTS1']
+        SINSTS2 = val['SINSTS2']
+        SINSTS3 = val['SINSTS3']
+        l = DATE + ' ' + SINSTS1 + ' ' + SINSTS2 + ' ' + SINSTS3
+        return l
+    except:
+        return None
 
 def displayN(N):
     nb = 0

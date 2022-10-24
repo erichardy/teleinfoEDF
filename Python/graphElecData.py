@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import datetime as dt
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -37,7 +39,12 @@ def animate(i, ts, p1, p2, p3, labels):
     global _size
 
     l  = getDataLine()
+    if not l:
+        error_date = dt.datetime.now()
+        print("Erreur retour de getDataLine : " + str(error_date))
+        return
     ll = l.split(' ')
+    day = ll[0]
     t = ll[1]
     tt = t.split(':')
     h = tt[0]
@@ -81,8 +88,8 @@ def animate(i, ts, p1, p2, p3, labels):
     plt.xticks(ticks=ts, labels=labels, rotation=20, ha='right')
     _prev_m = m
     plt.subplots_adjust(right=0.98, left=0.08, top=0.90, bottom=0.10)
-    plt.title('Consommation électrique par phase en temps réel')
-    plt.ylabel('Watts')
+    plt.title("Consommation élec par phase (temps réel) " + day + ' ' + t)
+    plt.ylabel("Watts")
     # print(ax.get_legend_handles_labels())
 
 # Set up plot to call animate() function periodically
