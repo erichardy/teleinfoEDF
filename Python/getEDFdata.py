@@ -6,17 +6,24 @@
 # from pySerial package
 import serial
 from datetime import datetime
+from time import sleep
 
 from manageDates import toDate
 
 from pdb import set_trace as st
 
 SERIAL_DEV = '/dev/ttyUSB0'
-
 ser = serial.Serial(SERIAL_DEV , 9600, parity=serial.PARITY_EVEN)
 ser.bytesize = serial.SEVENBITS
 ser.stopbits = serial.STOPBITS_ONE
 
+def reOpenSerial():
+    global ser
+    ser.close()
+    sleep(.5)
+    ser = serial.Serial(SERIAL_DEV , 9600, parity=serial.PARITY_EVEN)
+    ser.bytesize = serial.SEVENBITS
+    ser.stopbits = serial.STOPBITS_ONE
 
 def getOneFrame():
     frame = []
@@ -36,6 +43,7 @@ def getDict(f):
     for c in f:
         fSTR += c.decode('utf-8')
     if len(fSTR) != 1213:
+        print("len(fSTR) != 1213 : %i" % (len(fSTR)))
         return(None, None, None)
     fList = fSTR.split("\n")
     values = {}
