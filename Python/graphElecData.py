@@ -72,13 +72,15 @@ def maxValue(l1, l2, l3):
 
 def recordData(cur):
     global _nbRecorded
+    _nbRecorded += 1
     if _dataFile is None:
-        _nbRecorded += 1
         print("%s %s %i %i %i (%i/%i)" % (
             cur[0], cur[1], cur[2], cur[3], cur[4], _nbRecorded, _nb))
     else:
         data = ("%s %s %i %i %i %i\n") % (cur[0], cur[1], cur[2], cur[3], cur[4], _nb)
         _dataFile.write(data)
+        if _nb - _nbRecorded > 19:
+            _dataFile.flush()
 
 # we record current data if one of the phase has a diff of MAX_DELTA
 # with the previous recorded data
