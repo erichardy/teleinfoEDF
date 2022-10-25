@@ -23,7 +23,8 @@ _dataFilename = args.filename
 
 if _dataFilename is not None:
     try:
-        _dataFile = open(_dataFilename, "a")
+        now = dt.datetime.now().strftime("-%y%m%d%H%M%S")
+        _dataFile = open(_dataFilename + now, "a")
     except:
         print("Unable to open %s to add data !!!" % (_dataFilename))
         _dataFile = None
