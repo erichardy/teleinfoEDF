@@ -6,6 +6,7 @@
 .vscode/settings.json
 
 edf.db
+edf*
 
 __pycache__
 
