@@ -5,6 +5,8 @@
 .vscode/ipch
 .vscode/settings.json
 
+_build
+
 edf.db
 
 __pycache__
