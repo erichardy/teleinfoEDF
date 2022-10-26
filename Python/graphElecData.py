@@ -1,12 +1,46 @@
 #!/usr/bin/python3
 
+import argparse
 import datetime as dt
+import serial
+from time import sleep
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import numpy as np
 from getEDFdata import getDataLine
+from getEDFdata import reOpenSerial
 from sys import exit
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-s", "--buffer_size", type=int, help="Size of the buffer", default=60)
+parser.add_argument("-d", "--device", type=str, help="USB/Serial device", default="/dev/ttyUSB0")
+parser.add_argument("-m", "--max_delta", type=int, help="delta between to recorded data", default=5)
+parser.add_argument("-f", "--filename", type=str, help="file name where to save data", default=None)
+args = parser.parse_args()
+
+_size = args.buffer_size
+_dataFilename = args.filename
+
+if _dataFilename is not None:
+    try:
+        now = dt.datetime.now().strftime("-%y%m%d%H%M%S")
+        _dataFile = open(_dataFilename + now, "a")
+    except:
+        print("Unable to open %s to add data !!!" % (_dataFilename))
+        _dataFile = None
+        _dataFilename = None
+
+    
+
+# SERIAL_DEV = '/dev/ttyUSB0'
+SERIAL_DEV = args.device
+ser = serial.Serial(SERIAL_DEV , 9600, parity=serial.PARITY_EVEN)
+ser.bytesize = serial.SEVENBITS
+ser.stopbits = serial.STOPBITS_ONE
+
 _prev_m = '0'
+_nb = 0
+_nbRecorded = 0
 
 # Create figure for plotting
 fig = plt.figure(figsize=[10, 4])
@@ -20,10 +54,15 @@ p2 = []
 p3 = []
 labels = []
 
-_yLimits = [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
+# _yLimits = [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
+_yLimits = np.arange(200, 6000, 200).tolist()
 _LyLimits = len(_yLimits)
 
-_size = 80
+# _size = 80
+# _size = 70
+_nbReads = 0
+_prevData = (" ", " ", 1, 1, 1)
+MAX_DELTA = args.max_delta # watts
 
 def maxValue(l1, l2, l3):
     highValue = max([max(l1), max(l2), max(l3)])
@@ -32,16 +71,53 @@ def maxValue(l1, l2, l3):
             return v
     return 6500
 
+def recordData(cur):
+    global _nbRecorded
+    _nbRecorded += 1
+    if _dataFile is None:
+        print("%s %s %i %i %i (%i/%i)" % (
+            cur[0], cur[1], cur[2], cur[3], cur[4], _nbRecorded, _nb))
+    else:
+        data = ("%s %s %i %i %i %i\n") % (cur[0], cur[1], cur[2], cur[3], cur[4], _nb)
+        _dataFile.write(data)
+        if _nb - _nbRecorded > 19:
+            _dataFile.flush()
+
+# we record current data if one of the phase has a diff of MAX_DELTA
+# with the previous recorded data
+def recordedData(cur, prev):
+    if abs(cur[2] - prev[2]) > MAX_DELTA:
+        recordData(cur)
+        return(cur)
+    if abs(cur[3] - prev[3]) > MAX_DELTA:
+        recordData(cur)
+        return(cur)
+    if abs(cur[4] - prev[4]) > MAX_DELTA:
+        recordData(cur)
+        return(cur)
+    return prev
+
 # This function is called periodically from FuncAnimation
 def animate(i, ts, p1, p2, p3, labels):
 
     global _prev_m
     global _size
+    global _nb
+    global _nbReads
+    global _prevData
 
+    """
+    if _nbReads > 20:
+        reOpenSerial()
+        sleep(.2)
+        _nbReads = 0
+    """
     l  = getDataLine()
+    # _nbReads += 1
+    _nb += 1
     if not l:
         error_date = dt.datetime.now()
-        print("Erreur retour de getDataLine : " + str(error_date))
+        print("%s : Erreur retour de getDataLine : %s" % (str(_nb), str(error_date)))
         return
     ll = l.split(' ')
     day = ll[0]
@@ -62,7 +138,8 @@ def animate(i, ts, p1, p2, p3, labels):
         labels.append(t)
     else:
         labels.append(' ')
-
+    curData = (day, t, ph1, ph2, ph3)
+    _prevData = recordedData(curData, _prevData)
     # Limit x and y lists to 20 items
     # p1 = p1[_size:]
     p1 = p1[-_size:]
@@ -88,9 +165,10 @@ def animate(i, ts, p1, p2, p3, labels):
     plt.xticks(ticks=ts, labels=labels, rotation=20, ha='right')
     _prev_m = m
     plt.subplots_adjust(right=0.98, left=0.08, top=0.90, bottom=0.10)
-    plt.title("Consommation élec par phase (temps réel) " + day + ' ' + t)
+    plt.title("Consommation élec par phase (temps réel) " + day + ' ' + t + ' ' + str(_nb))
     plt.ylabel("Watts")
     # print(ax.get_legend_handles_labels())
+    # sleep(.3)
 
 # Set up plot to call animate() function periodically
 ani = animation.FuncAnimation(fig, animate, fargs=(ts, p1, p2, p3, labels), interval=50)
