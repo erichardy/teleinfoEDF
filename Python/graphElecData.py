@@ -20,6 +20,7 @@ args = parser.parse_args()
 
 _size = args.buffer_size
 _dataFilename = args.filename
+_dataFile = None
 
 if _dataFilename is not None:
     try:
@@ -73,6 +74,7 @@ def maxValue(l1, l2, l3):
 
 def recordData(cur):
     global _nbRecorded
+    global _dataFile
     _nbRecorded += 1
     if _dataFile is None:
         print("%s %s %i %i %i (%i/%i)" % (
