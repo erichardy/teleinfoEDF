@@ -20,6 +20,7 @@ Téléinformation EDF
 	Le code d'acquisition <acquisition>
 
 
+
 Résumé
 ======
 
@@ -35,7 +36,7 @@ les informations électriques. Par exemple :
 Ces informations sont à la disposition des usagers (pas EDF) via une liaison constituée de 2 fils
 sur les bornes I1 et I2 du compteur.
 
-	.. note:: Ne pas confondre ces informations qui sont la disposition des usagers et les informations collectées
+	.. note:: Ne pas confondre ces informations qui sont à la disposition des usagers et les informations collectées
 	  par EDF via une communication par CPL (il me semble) à l'extérieur du foyer.
 
 

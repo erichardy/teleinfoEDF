@@ -7,6 +7,7 @@
 import serial
 from datetime import datetime
 from time import sleep
+from sys import version_info
 
 from manageDates import toDate
 
@@ -87,7 +88,10 @@ def getDataLine():
     f = getOneFrame()
     (val, horos, checksums) = getDict(f)
     try:
-        DATE = toDate(horos['DATE']).isoformat(' ', timespec='seconds')
+        if version_info.minor < 6:
+            DATE = toDate(horos['DATE']).isoformat(' ')
+        else:
+            DATE = toDate(horos['DATE']).isoformat(' ', timespec='seconds')
         SINSTS1 = val['SINSTS1']
         SINSTS2 = val['SINSTS2']
         SINSTS3 = val['SINSTS3']

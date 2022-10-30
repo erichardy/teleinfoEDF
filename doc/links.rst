@@ -1,4 +1,8 @@
 
+.. _TIC: https://www.capeb.fr/www/capeb/media//vaucluse/document/FicheSeQuelecN17TIC.pdf
+.. _TéléInformation Client: https://www.capeb.fr/www/capeb/media//vaucluse/document/FicheSeQuelecN17TIC.pdf
+.. _Enedis-NOI-CPT_54E: https://www.enedis.fr/media/2035/download
+
 .. _Sphinx: http://sphinx-doc.org/
 .. _Sphinx-config: http://www.sphinx-doc.org/en/1.4.8/config.html
 .. _RST: http://docutils.sourceforge.net/docs/user/rst/quickref.html
