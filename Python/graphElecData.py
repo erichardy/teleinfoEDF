@@ -68,6 +68,9 @@ MAX_DELTA = args.max_delta # watts
 
 
 def getOneFrame():
+    global _nb
+    if not _nb % 30:
+        ser.reset_input_buffer()
     frame = []
     val = ser.read(1)
     while(val != b'\x02'):
