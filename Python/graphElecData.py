@@ -3,13 +3,16 @@
 import argparse
 import datetime as dt
 import serial
-from time import sleep
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
-from getEDFdata import getDataLine
-from getEDFdata import reOpenSerial
 from sys import exit
+from sys import version_info
+from getEDFdata import toDate
+
+if version_info.minor < 6:
+    print("Python version must be >= 3.6")
+    exit(1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--buffer_size", type=int, help="Size of the buffer", default=60)
@@ -32,8 +35,6 @@ if _dataFilename is not None:
         _dataFilename = None
 
     
-
-# SERIAL_DEV = '/dev/ttyUSB0'
 SERIAL_DEV = args.device
 ser = serial.Serial(SERIAL_DEV , 9600, parity=serial.PARITY_EVEN)
 ser.bytesize = serial.SEVENBITS
@@ -64,6 +65,68 @@ _LyLimits = len(_yLimits)
 _nbReads = 0
 _prevData = (" ", " ", 1, 1, 1)
 MAX_DELTA = args.max_delta # watts
+
+
+def getOneFrame():
+    frame = []
+    val = ser.read(1)
+    while(val != b'\x02'):
+        val = ser.read(1)
+
+    while(val != b'\x03'):
+        # print(val)
+        val = ser.read(1)
+        frame.append(val)
+    return frame
+
+
+# get a list of chars and return 3 dicts : values, horo, checksum
+def getDict(f):
+    fSTR = ""
+    for c in f:
+        fSTR += c.decode('utf-8')
+    if len(fSTR) != 1213:
+        print("len(fSTR) != 1213 : %i" % (len(fSTR)))
+        return(None, None, None)
+    fList = fSTR.split("\n")
+    values = {}
+    horos = {}
+    checksums = {}
+    for field in fList:
+        mesure = field.split("\t")
+        value = None
+        label = mesure[0]
+        if len(mesure) == 3:
+            value = mesure[1]
+            checksum = mesure[2]
+            horo = None
+        if len(mesure) == 4:
+            horo = mesure[1]
+            value = mesure[2]
+            if label == 'DATE':
+                value = 'x'     # correction du bug dans la trame emise
+            checksum = mesure[3]
+        if value:
+            values[label] = value
+            horos[label] = horo
+            checksums[label] =checksum
+    return(values, horos, checksums)
+
+
+# to fix in case of None type object
+def getDataLine():
+    f = getOneFrame()
+    (val, horos, checksums) = getDict(f)
+    try:
+        DATE = toDate(horos['DATE']).isoformat(' ', timespec='seconds')
+        SINSTS1 = val['SINSTS1']
+        SINSTS2 = val['SINSTS2']
+        SINSTS3 = val['SINSTS3']
+        l = DATE + ' ' + SINSTS1 + ' ' + SINSTS2 + ' ' + SINSTS3
+        return l
+    except:
+        return None
+
 
 def maxValue(l1, l2, l3):
     highValue = max([max(l1), max(l2), max(l3)])
@@ -108,12 +171,6 @@ def animate(i, ts, p1, p2, p3, labels):
     global _nbReads
     global _prevData
 
-    """
-    if _nbReads > 20:
-        reOpenSerial()
-        sleep(.2)
-        _nbReads = 0
-    """
     l  = getDataLine()
     # _nbReads += 1
     _nb += 1
